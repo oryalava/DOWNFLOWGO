@@ -69,6 +69,7 @@ To run these scripts, you will need :
 
 --> Built-in Python 3.8 Packages (included in the standard installation): math, os, sys
 
+
 --> install the following environment:
 
 ```conda env create -f environment.yml```
@@ -98,10 +99,10 @@ NODATA_value  0
 ### Run the guiS:
 
 To run DOWNFLOW :
- ``` python3 main_downglow_GUI.py ```
+ ``` python3 main_downflow_GUI.py ```
 
 To run DOWNFLOWGO :
- ``` python3 main_downglowgo_GUI.py ```
+ ``` python3 main_downflowgo_GUI.py ```
 
 ## Output files
 
