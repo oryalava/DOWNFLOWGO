@@ -66,44 +66,6 @@ To run DOWNFLOW :
 To run DOWNFLOWGO :
  ``` python3 main_downglowgo_GUI.py ```
 
-
-
-###  In main_downflowgo.py
-
-1) write the link to the result folder of your choice (in general it is the date of the eruption)
-
-```
-path_to_results = "Users/Documents/Eruptions/030523"
-```
-
-2) write the link to DEM of your choice:
-
-```
-dem = path + '/DEM/MNT-post-20220919_5m.asc'
-```
-
-3) write a short name for your DEM (this will be used to name your output files)
-```
-dem_name = '_MNT2022_'
-```
-4) write the path to the ```.csv``` file containing separated by ";"the vent coordinates (in UTM) – possibility of having various points
-```
-csv_vent_file = "./vent_coordinate.csv"
-```
- Coordinate must be in UTM and you can add lines for new vent
-```
-flow_id;X;Y
-Vent1;369142.0;7647368.0
-Vent2;367303.0;7651654.0
-```
-
-5) write the path to the json input file
-```
-template_json_file = path +"/PdF_template.json"
-```
-
- 6)  run main_downflowgo.py
-
 ## Output files
 
 In the dedicated folder chosen in step 1) you will find:
