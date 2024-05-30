@@ -1,13 +1,14 @@
 #import requires packages
 import os.path
 import csv
-import run_flowgo_effusion_rate_array
+import downflowgo.run_flowgo_effusion_rate_array as run_flowgo_effusion_rate_array
 import os
-import txt_to_shape
+import downflowgo.txt_to_shape as txt_to_shape
 
 def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file):
 
-    path = os.path.abspath('')
+    path = os.path.abspath('')+"/downflowgo"
+    print('path',path)
 
     # ------------>    define parameter file and N and Dh for DOWNFLOW  <------------
 
@@ -42,6 +43,7 @@ def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file):
 
             # this returns an asc file with the lava flow path probabilities
             get_downflow_probabilities(lat, long, dem, path, parameter_file_downflow)
+            print('get_downflow_probabilities', get_downflow_probabilities)
 
             print("******************* DOWNFLOW probability executed: sim.asc created **************************")
 
@@ -52,7 +54,6 @@ def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file):
             filled_dem = 'dem_filled_DH0.001_N1000.asc'
             get_downflow_losd(lat, long, filled_dem, path, parameter_file_downflow)
             # this returns the profile.txt
-
             os.remove(path_to_folder + "dem_filled_DH0.001_N1000.asc")
             # create map folder
             map = path_to_folder + 'map'
@@ -92,10 +93,9 @@ def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file):
             #mapping.create_map(path_to_folder, flow_id, tiff_file, station_ovpf_path, logo, dem)
     print("************************************** THE END *************************************")
 
-
 def run_downflow_simple(path_to_results,dem,csv_vent_file):
-
-    path = os.path.abspath('')
+    path = os.path.abspath('') + "/downflowgo"
+    print('path', path)
 
     # ------------>    define parameter file and N and Dh for DOWNFLOW  <------------
 

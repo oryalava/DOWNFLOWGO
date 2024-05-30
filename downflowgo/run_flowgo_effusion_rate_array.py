@@ -2,9 +2,9 @@ import csv
 import json
 import os
 
-import run_flowgo
-import plot_flowgo_results
-import run_outs
+import downflowgo.run_flowgo as run_flowgo
+import downflowgo.plot_flowgo_results as plot_flowgo_results
+import downflowgo.run_outs as run_outs
 
 
 
