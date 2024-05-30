@@ -123,10 +123,10 @@ if __name__ == "__main__":
         values = get_values()
 
         #  Make button to browse layers for the map
-        file1_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF_2023/mapping_data/layers/IGN_SCAN25_2020_enclos_img.tif")
+        file1_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/mapping_data/layers/IGN_SCAN25_2020_enclos_img.tif")
         file2_var = tk.StringVar(value="0")
         file3_var = tk.StringVar(value="0")
-        file4_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF_2023/mapping_data/map/accessoires/all_logo.png")
+        file4_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/mapping_data/map/accessoires/all_logo.png")
 
         file1_frame = tk.Frame(map_window)
         file1_frame.pack(anchor=tk.W)
