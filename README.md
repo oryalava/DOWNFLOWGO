@@ -1,28 +1,27 @@
  # Welcome to DOWNFLOWGO
 
 A number of numerical models exist to support lava flow modeling (see review by Dietterich et al. [2017]). 
-Here, we combine the stochastic model DOWNFLOW [Favalli 2005] with the deterministic model FLOWGO [Harris and Rowland 2001; Harris 2015] to support hazard assessment at Piton de la Fournaise , mainly.
+Here, we combine the stochastic model DOWNFLOW [Favalli 2005](https://doi.org/10.1029/2004gl021718) with the deterministic model FLOWGO [Harris and Rowland 2001](https://doi.org/10.1007/s004450000120) to support hazard assessment at Piton de la Fournaise , mainly.
 
 DOWNFLOW provides the most likely lava flow paths, including the LoSD and area of coverage. 
 For responding to current crises at Piton de la Fournaise, this model was calibrated by fitting the output flow coverage 
-to the actual areas of all flow fields since 2016 [Chevrel et al. 2021]. DOWNFLOW must be calibrated (dh and N parameters) for you volcano.
+to the actual areas of all flow fields since 2016 [Chevrel et al. 2021](https://doi.org/10.5194/nhess-21-2355-2021). DOWNFLOW must be calibrated (dh and N parameters) for you volcano.
 
-FLOWGO calculates the runout distance of a lava flow along a slope line for a given effusion rate [Harris and Rowland 2001]. 
-It is 1-D model adapted for cooling-limited lava flow in a channel of uniform depth that, once calibrated with a suitable models and inpu parameters, 
-only needs the slope from the vent along the steepest descent line and a discharge rate as its source terms
-(see Chevrel et al. [2018] for more details; https://github.com/pyflowgo/pyflowgo.git). 
-FLOWGO output is only appropriate for channel-fed, cooling-limited flow of basaltic composition. 
+FLOWGO calculates the runout distance of a lava flow along a slope line for a given effusion rate [Harris and Rowland 2001](https://doi.org/10.1007/s004450000120). 
+It is 1-D model adapted for **cooling-limited basaltic lava flow in a channel of uniform depth** that, once calibrated with a suitable models and input parameters, 
+only needs the slope from the vent along the steepest descent line and a discharge rate as its source terms.
+The code is now an open access python library : [PyFLOwGO](https://github.com/pyflowgo/pyflowgo.git) presented in [Chevrel et al. 2018](https://doi.org/10.1016/j.cageo.2017.11.009). 
+
 FLOWGO source terms must be adapted accordingly to your lava flow. 
-See exemples on Earth: Mt Cameroon (Wantim et al. 2013); D.R. Congo (Mossoux et al. 2016), Galapagos (Rowland et al. 2003); 
-Hawaiʻi, (Harris et al., 2022; Harris & Rowland, 2001, 2015; Mossoux et al., 2016; Riker et al., 2009; Robert et al., 2014; Rowland et al., 2005; Chevrel et al., 2018; Thompson and Ramsey, 2021), 
-Italy (Harris et al., 2007, 2011; Wright et al., 2008) ; Kamchatka (Ramsey et al. 2019);  
+See exemples on Earth: Hawaiʻi, (Harris et al., 2022; Harris & Rowland, 2001, 2015; Mossoux et al., 2016; Riker et al., 2009; Robert et al., 2014; Rowland et al., 2005; Chevrel et al., 2018; Thompson and Ramsey, 2021), 
+Italy (Harris et al., 2007, 2011; Wright et al., 2008) ; Kamchatka (Ramsey et al. 2019); Mt Cameroon (Wantim et al. 2013); D.R. Congo (Mossoux et al. 2016), Galapagos (Rowland et al. 2003) 
 La Reunion  (Chevrel et al., 2018, 2022; Harris et al., 2016, 2019; Peltier et al., 2022; Rhéty et al., 2017) 
 and on other planets (see also next session): Mars (Flynn et al., 2022; Rowland et al., 2004) Mercury (Vetere et al. 2017) ; 
 Moon (Lev et al. 2021) and Venus Flynn et al. (2023). 
 
-To use this package you must cite Chevrel et al. (2022),(Favalli 2005) and (Harris and Rowland 2001):
+To use this package you must cite [Chevrel et al. 2022](https://doi.org/10.30909/vol.05.02.313334), [Favalli 2005](https://doi.org/10.1029/2004gl021718) and [Harris and Rowland 2001](https://doi.org/10.1007/s004450000120):
 
-Chevrel MO, Harris A, Peltier A, Villeneuve N, Coppola D, Gouhier M, Drenne S. (2022) 
+**Chevrel MO, Harris A, Peltier A, Villeneuve N, Coppola D, Gouhier M, Drenne S. (2022) 
 Volcanic crisis management supported by near real time lava flow hazard assessment at Piton de la Fournaise, 
 Volcanica 5(2), pp. 313–334. https://doi.org/10.30909/vol.05.02.313334
 
@@ -30,16 +29,26 @@ Harris, A. J. L. and S. Rowland (2001). “FLOWGO: a kinematic thermo-rheologica
 Bulletin of Volcanology 63(1), pages 20–44. issn: 1432-0819. https://doi.org/10.1007/s004450000120.
 
 Favalli, M. (2005). “Forecasting lava flow paths by a stochastic approach”. Geophysical Research Letters 32(3). 
-issn: 0094- 8276. https://doi.org/10.1029/2004gl021718.
+issn: 0094- 8276. https://doi.org/10.1029/2004gl021718.**
 
 
 ## Description of the package 
 This folder contains :
 
-1) a folder **DOWNFLOW** containing the code in c++ of [DOWNFLOW](https://github.com/) _a link to github will be added one day by Massi Favalli_
+1) a folder **DOWNFLOW** containing the code in c++ of DOWNFLOW [Favalli 2005](https://doi.org/10.1029/2004gl021718) 
+provided by Massimiliano Favallia (hopefully soon available on github).
+
 
 2) the following scripts :
-- scripts of the functions :
+
+- scripts to execute :
+
+The script   ``` main_downflow.py  ``` (or ``` main_downflow_GUI.py  ```) is a Python program designed to run **DOWNFLOW**.
+
+The script   ``` main_downflowgo.py  ```(or ``` main_downflowgo_GUI.py  ```)  is a Python program designed to run in sequence **DOWNFLOW** and **FLOWGO**. 
+
+
+- scripts of the various functions :
 ```
   downflowcpp.py
   run_flowgo_effusion_rate_array.py
@@ -49,13 +58,8 @@ This folder contains :
   run_outs.py
   mapping.py
   ```
-- scripts to execute :
 
-The script   ``` main_downflow.py  ``` (or ``` main_downflow_GUI.py  ```) is a Python program designed to run **DOWNFLOW**.
-
-The script   ``` main_downflowgo.py  ```(or ``` main_downflowgo_GUI.py  ```)  is a Python program designed to run in sequence **DOWNFLOW** and **FLOWGO**. 
-
-
+3) the requirements and environment
 
 ## Actions:
 
@@ -65,7 +69,7 @@ To run these scripts, you will need :
 
 --> Built-in Python 3.8 Packages (included in the standard installation): math, os, sys
 
---> install the following envorinment:
+--> install the following environment:
 
 ```conda env create -f environment.yml```
 
@@ -73,12 +77,12 @@ or requirements :
 
 ```pip install -r requirements.txt```
 
---> install the pyflowgo library from github:
+--> install the [PyFLOwGO](https://github.com/pyflowgo/pyflowgo.git) library from github:
 
 ```pip install git+https://github.com/pyflowgo/pyflowgo.git   ```
 
 
-### File types:
+### Requiered file types:
 
 1) The DEM must be  ```.asc ``` format with UTM in WGS84, with the following header :
 ```
@@ -116,4 +120,4 @@ You can either use the files to create your own map with any GIS system or direc
  Dr. Magdalena Oryaëlle Chevrel (oryaelle.chevrel@ird.com) - Laboratoire Magmas et Volcans
 
  # Licence:
-The current license of the software is LGPL v3.0.
+The current license of the software is GPL v3.0.
