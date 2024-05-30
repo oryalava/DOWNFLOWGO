@@ -111,3 +111,9 @@ In the dedicated folder chosen in step 1) you will find:
   5) ```map.png``` (the map of the simulation that uses the above layers with the IGN 2020 background)
 
 You can either use the files to create your own map with any GIS system or directly use the map.png
+
+ # Authors:
+ Dr. Magdalena Oryaëlle Chevrel (oryaelle.chevrel@ird.com) - Laboratoire Magmas et Volcans
+
+ # Licence:
+The current license of the software is LGPL v3.0.
