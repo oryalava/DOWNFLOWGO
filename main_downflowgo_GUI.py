@@ -130,9 +130,11 @@ if __name__ == "__main__":
         values = get_values()
 
         #  Make button to browse layers for the map
+        ## TODO:  change path to prefered Background
         file1_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/mapping_data/IGN-map-Background/layers/IGN_SCAN25_2020_enclos_img.tif")
         file2_var = tk.StringVar(value="0")
         file3_var = tk.StringVar(value="0")
+        ##TODO:  change path to prefered logos
         file4_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/mapping_data/map/accessoires/all_logo.png")
 
         file1_frame = tk.Frame(map_window)
@@ -233,6 +235,7 @@ if __name__ == "__main__":
     # Sélection du dossier
     label_path_to_results = tk.Label(folder_frame, text="Path to Eruption Results:")
     label_path_to_results.pack(side=tk.LEFT) # Aligner à gauche
+    ##TODO:  change path to prefered folder
     entry_path_to_results_var = tk.StringVar(value="/Users/chevrel/GoogleDrive/Eruption_PdF/test")
     entry_path_to_results = tk.Entry(folder_frame, textvariable=entry_path_to_results_var, width=50)
     entry_path_to_results.pack(side=tk.LEFT)
@@ -282,6 +285,7 @@ if __name__ == "__main__":
     dem_frame.pack(anchor=tk.W)
     label_dem_name = tk.Label(dem_frame, text="DEM:")
     label_dem_name.pack(side=tk.LEFT)  # Aligner à gauche
+    ##TODO:  change path to prefered DEM
     entry_dem_name_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/DEM/DEM-20240411-net-5m.asc")
     entry_dem_name = tk.Entry(dem_frame, textvariable=entry_dem_name_var, width=80)
     entry_dem_name.pack(side=tk.LEFT)
@@ -293,6 +297,7 @@ if __name__ == "__main__":
     json_frame.pack(anchor=tk.W)
     label_json_file = tk.Label(json_frame, text="JSON File:")
     label_json_file.pack(side=tk.LEFT)  # Aligner à gauche
+    ##TODO:  change path to prefered json
     entry_json_file_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/PdF_template.json")
     entry_json_file = tk.Entry(json_frame, textvariable=entry_json_file_var, width=80)
     entry_json_file.pack(side=tk.LEFT)
