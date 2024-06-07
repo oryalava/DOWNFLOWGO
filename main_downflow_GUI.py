@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
         #  Make button to browse layers for the map
         ## TODO:  change path to prefered Background
-        file1_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/mapping_data/IGN-map-Background/layers/IGN_SCAN25_2020_enclos_img.tif")
+        file1_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/mapping_data/layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
         file2_var = tk.StringVar(value="0")
         file3_var = tk.StringVar(value="0")
         ##TODO:  change path to prefered logos
@@ -252,14 +252,14 @@ if __name__ == "__main__":
 #    # Easting
     label_easting = tk.Label(easting_northing_frame, text="Easting (UTM):")
     label_easting.pack(side=tk.LEFT)
-    entry_easting_var = tk.StringVar(value="369142")
+    entry_easting_var = tk.StringVar(value="369082.7")
     entry_easting = tk.Entry(easting_northing_frame, textvariable=entry_easting_var, width=15)
     entry_easting.pack(side=tk.LEFT)
 #
 #    #  Northing
     label_northing = tk.Label(easting_northing_frame, text="Northing (UTM):")
     label_northing.pack(side=tk.LEFT)
-    entry_northing_var = tk.StringVar(value="7647368")
+    entry_northing_var = tk.StringVar(value="7647204.29")
     entry_northing = tk.Entry(easting_northing_frame, textvariable=entry_northing_var, width=15)
     entry_northing.pack(side=tk.LEFT)
 

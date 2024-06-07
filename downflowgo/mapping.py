@@ -77,13 +77,7 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
     ax.set_xlim(xllcorner_dem, xllcorner_dem + ncols_dem * cellsize_dem)
     ax.set_ylim(yllcorner_dem, yllcorner_dem + nrows_dem * cellsize_dem)
 
-    # ------------ Plot vector layers simulation path + vent + run out ----------
-
-    # Load vector layers
-    losd = fiona.open(losd_path)
-    vent = fiona.open(vent_path)
-    run_outs = fiona.open(run_outs_path)
-
+    # ------------ Plot lava flow outline and stations ----------
 
     if lavaflow_outline_path == str(0):
         pass
@@ -127,6 +121,14 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
                 previous_y = y
         adjust_text(text_station)
 
+    # ------------ Plot vector layers simulation path + vent + run out ----------
+
+    # Load vector layers
+    losd = fiona.open(losd_path)
+    vent = fiona.open(vent_path)
+    run_outs = fiona.open(run_outs_path)
+
+
     # Plot the LOSD vector layer
     for feature in losd:
         geometry = shape(feature['geometry'])
@@ -141,7 +143,6 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
             x, y = geometry.x, geometry.y
             ax.plot(x, y, 'r^', markersize=10)
 
-
     # Plot the run_outs vector layer
     points = []
     labels = []
@@ -153,16 +154,30 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
             points.append((x, y))
             labels.append(properties['Effusion_r'])
             ax.plot(x, y, 'b', marker=7)
-    # sort out the point according their coordinates y
-    sorted_points = sorted(zip(points, labels), key=lambda p: p[0][1])
+
+    # Create a dictionary to keep only the smallest label for each unique point
+    unique_points = {}
+    for (x, y), label in zip(points, labels):
+        if (x, y) not in unique_points or label < unique_points[(x, y)]:
+            unique_points[(x, y)] = label
+
+    # Convert dictionary back to sorted list of points and labels
+    sorted_points = sorted(unique_points.items(), key=lambda p: p[0][1])
     # Displaying runout labels with automatic adjustment and automatic adjustment of label positions
     # to avoid overlapping
     texts = []
     previous_y = None
     for (x, y), label in sorted_points:
-        if previous_y is None or y - previous_y > 50:  # Ajuster la valeur selon votre besoin (en utm)
-            texts.append(ax.annotate(label, (x, y), xytext=(-5, 8), color='blue', fontsize=10, textcoords='offset points'))
+        if previous_y is None or y - previous_y > 5:  # Ajuster la valeur selon votre besoin (en utm)
+            texts.append(ax.annotate(label, (x, y), xytext=(-3, 5), color='blue', fontsize=10, textcoords='offset points'))
             previous_y = y
+        else:
+            # If labels are too close, move the label and draw a line
+            offset_x, offset_y = 5, 5
+            texts.append(ax.annotate(
+                label, (x, y), xytext=(x + offset_x, y + offset_y),
+                arrowprops=dict(arrowstyle="->", color='b'), color='b', fontsize=10
+            ))
     adjust_text(texts)
 
 
@@ -172,6 +187,17 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
     ax.plot([], [], 'r^', markersize=7, label='Bouche éruptive ('+ flow_id+')')
     ax.plot([], [], '-r', label='Trajectoire principale')
     ax.plot([], [], 'bv', markersize=5, label='Distances atteintes \npour un débit donné (m$^{3}$/s)')
+
+    if station_ovpf_path == str(0):
+        pass
+    else:
+        ax.plot([], [], 'k.', markersize=5, label='Stations OVPF')
+
+    if lavaflow_outline_path == str(0):
+        pass
+    else:
+        ax.plot([], [], 'k-', markersize=10, label='Contour de la coulée')
+
     legend=ax.legend(bbox_to_anchor=(1, 0.7), loc="upper left", fontsize='8')
     legend.get_frame().set_linewidth(0)
     # Adjust the figure size
@@ -285,11 +311,7 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     ax.set_xlim(xllcorner_dem, xllcorner_dem + ncols_dem * cellsize_dem)
     ax.set_ylim(yllcorner_dem, yllcorner_dem + nrows_dem * cellsize_dem)
 
-    # ------------ Plot vector layers simulation path + vent ----------
-
-    # Load vector layers
-    losd = fiona.open(losd_path)
-    vent = fiona.open(vent_path)
+    # ------------ Plot lava flow outline and stations ----------
 
     if lavaflow_outline_path == str(0):
         pass
@@ -328,10 +350,23 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
         text_station = []
         previous_y = None
         for (x, y), label in sorted_points:
-            if previous_y is None or y - previous_y > 5:  #value in UTM between two points
+            if previous_y is None or y - previous_y > 10:  #value in UTM between two points
                 text_station.append(ax.annotate(label, (x, y), xytext=(-1, 1), color='k', fontsize=7, textcoords='offset points'))
                 previous_y = y
+            else:
+                # If labels are too close, move the label and draw a line
+                offset_x, offset_y = 10, 10
+                text_station.append(ax.annotate(
+                    label, (x, y), xytext=(x + offset_x, y + offset_y),
+                    arrowprops=dict(arrowstyle="->", color='k'), color='k', fontsize=7
+                ))
         adjust_text(text_station)
+
+    # ------------ Plot vector layers simulation path + vent ----------
+
+    # Load vector layers
+    losd = fiona.open(losd_path)
+    vent = fiona.open(vent_path)
 
     # Plot the LOSD vector layer
     for feature in losd:
@@ -354,6 +389,17 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     # Add the legend image to the map
     ax.plot([], [], 'r^', markersize=7, label='Bouche éruptive ('+ flow_id+')')
     ax.plot([], [], '-r', label='Trajectoire principale')
+
+    if station_ovpf_path == str(0):
+        pass
+    else:
+        ax.plot([], [], 'k.', markersize=5, label='Stations OVPF')
+
+    if lavaflow_outline_path == str(0):
+        pass
+    else:
+        ax.plot([], [], 'k-', markersize=10, label='Contour de la coulée')
+
     legend=ax.legend(bbox_to_anchor=(1, 0.7), loc="upper left", fontsize='8')
     legend.get_frame().set_linewidth(0)
     # Adjust the figure size
