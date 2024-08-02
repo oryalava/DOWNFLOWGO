@@ -118,7 +118,7 @@ In the dedicated folder chosen in step 1) you will find:
 You can either use the files to create your own map with any GIS system or directly use the map.png
 
  # Authors:
- Dr. Magdalena Oryaëlle Chevrel (oryaelle.chevrel@ird.com) - Laboratoire Magmas et Volcans
+ Dr. Magdalena Oryaëlle Chevrel (oryaelle.chevrel@ird.fr) - Laboratoire Magmas et Volcans
 
  # Licence:
 The current license of the software is GPL v3.0.
