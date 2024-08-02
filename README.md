@@ -33,10 +33,10 @@ issn: 0094- 8276. https://doi.org/10.1029/2004gl021718.**
 
 
 ## Description of the package 
-This folder contains :
+This folder includes :
 
 1) a folder **DOWNFLOW** containing the code in c++ of DOWNFLOW [Favalli 2005](https://doi.org/10.1029/2004gl021718) 
-provided by Massimiliano Favallia (hopefully soon available on github).
+provided by Massimiliano Favalli (hopefully soon available on github).
 
 
 2) the following scripts :
