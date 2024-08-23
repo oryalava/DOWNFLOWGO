@@ -5,7 +5,7 @@ import downflowgo.run_flowgo_effusion_rate_array as run_flowgo_effusion_rate_arr
 import os
 import downflowgo.txt_to_shape as txt_to_shape
 
-def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file):
+def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file, crs):
 
     path = os.path.abspath('')+"/downflowgo"
     print('path',path)
@@ -70,7 +70,7 @@ def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file):
             slope_file = path_to_folder + "profile_00000.txt"
 
             # convert profile to shape line
-            txt_to_shape.get_path_shp(slope_file, path_to_folder, flow_id)
+            txt_to_shape.get_path_shp(slope_file, path_to_folder, flow_id, crs)
             print('*********** shape file is saved in:', map, '/path_'+flow_id+'.shp', '***********')
 
             print("**************** DOWNFLOW slope profile executed for FLOW ID =", flow_id, '*********')
@@ -85,15 +85,17 @@ def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file):
 
             # convert profile to shape line
             run_outs = path_to_folder + 'run_outs_'+flow_id+'.csv'
-            txt_to_shape.get_runouts_shp(run_outs, path_to_folder, flow_id)
-            txt_to_shape.get_vent_shp(path_to_folder, flow_id, csv_vent_file)
+            txt_to_shape.get_runouts_shp(run_outs, path_to_folder, flow_id, crs)
+            txt_to_shape.get_vent_shp(path_to_folder, flow_id, csv_vent_file, crs)
             print('*********** run outs file is saved in:', map, '/run_outs_'+flow_id+'.shp', '***********')
 
             # Make the MAP
             #mapping.create_map(path_to_folder, flow_id, tiff_file, station_ovpf_path, logo, dem)
     print("************************************** THE END *************************************")
 
-def run_downflow_simple(path_to_results,dem,csv_vent_file):
+
+def run_downflow_simple(path_to_results,dem,csv_vent_file, crs):
+
     path = os.path.abspath('') + "/downflowgo"
     print('path', path)
 
@@ -130,6 +132,7 @@ def run_downflow_simple(path_to_results,dem,csv_vent_file):
 
             # this returns an asc file with the lava flow path probabilities
             get_downflow_probabilities(lat, long, dem, path, parameter_file_downflow)
+            print('get_downflow_probabilities', get_downflow_probabilities)
 
             print("******************* DOWNFLOW probability executed: sim.asc created **************************")
 
@@ -140,7 +143,6 @@ def run_downflow_simple(path_to_results,dem,csv_vent_file):
             filled_dem = 'dem_filled_DH0.001_N1000.asc'
             get_downflow_losd(lat, long, filled_dem, path, parameter_file_downflow)
             # this returns the profile.txt
-
             os.remove(path_to_folder + "dem_filled_DH0.001_N1000.asc")
             # create map folder
             map = path_to_folder + 'map'
@@ -157,14 +159,13 @@ def run_downflow_simple(path_to_results,dem,csv_vent_file):
             slope_file = path_to_folder + "profile_00000.txt"
 
             # convert profile to shape line
-            txt_to_shape.get_path_shp(slope_file, path_to_folder, flow_id)
-            txt_to_shape.get_vent_shp(path_to_folder, flow_id,csv_vent_file)
+            txt_to_shape.get_path_shp(slope_file, path_to_folder, flow_id, crs)
+            txt_to_shape.get_vent_shp(path_to_folder, flow_id, csv_vent_file, crs)
             print('*********** shape file is saved in:', map, '/path_'+flow_id+'.shp', '***********')
 
             print("**************** DOWNFLOW slope profile executed for FLOW ID =", flow_id, '*********')
 
     print("************************************** THE END *************************************")
-
 def run_downflow(parameter_file_downflow, path):
     # Run DOWNFLOW
     os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
@@ -192,7 +193,6 @@ def get_downflow_probabilities(lat, long, dem, path, parameter_file_downflow):
                 output.write(line)
     # Run DOWNFLOW
     os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
-
 def get_downflow_filled_dem(lat, long, dem, path, parameter_file_downflow):
 
     """ Execute DOWNFLOW and create a new DEM where the pit are filled with a thin layer of 1 mm"""
@@ -224,7 +224,6 @@ def get_downflow_filled_dem(lat, long, dem, path, parameter_file_downflow):
                 output.write(line)
     # Run DOWNFLOW
     os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
-
 def get_downflow_losd(lat, long, filled_dem, path,parameter_file_downflow):
     """ Execute DOWNFLOW and create the profile.txt """
     n_path = "1"

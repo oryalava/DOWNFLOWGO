@@ -4,7 +4,7 @@ import pandas as pd
 import rasterio
 import numpy as np
 
-def get_vent_shp(path_to_folder, flow_id, csv_vent_file):
+def get_vent_shp(path_to_folder, flow_id, csv_vent_file, crs):
     # import points from slope file
     pointDf = pd.read_csv(csv_vent_file, header=0, sep=';')
     pointDf.head()
@@ -17,7 +17,7 @@ def get_vent_shp(path_to_folder, flow_id, csv_vent_file):
     # open a fiona object
     name_vent = 'vent_' + flow_id + '.shp'
     pointShp = fiona.open(path_to_folder+'map/' + name_vent, mode='w',
-                         driver='ESRI Shapefile', schema=schema, crs="EPSG:32740")
+                         driver='ESRI Shapefile', schema=schema, crs=crs)
 
     # iterate over each row in the dataframe and save record
     for index, row in pointDf.iterrows():
@@ -29,7 +29,7 @@ def get_vent_shp(path_to_folder, flow_id, csv_vent_file):
     # close fiona object
     pointShp.close()
 
-def get_path_shp(slope_file, path_to_folder,flow_id):
+def get_path_shp(slope_file, path_to_folder,flow_id, crs):
     # import points from slope file
     lineDf = pd.read_csv(slope_file, header=0, sep='\t')
     lineDf.head()
@@ -38,7 +38,7 @@ def get_path_shp(slope_file, path_to_folder,flow_id):
     # open a fiona object
     name = 'path_'+flow_id+'.shp'
     lineShp = fiona.open(path_to_folder+'map/' + name, mode='w',
-                         driver='ESRI Shapefile', schema=schema, crs="EPSG:32740")
+                         driver='ESRI Shapefile', schema=schema, crs=crs)
 
     # get list of points
     xyList = []
@@ -53,7 +53,7 @@ def get_path_shp(slope_file, path_to_folder,flow_id):
     # close fiona object
     lineShp.close()
 
-def get_runouts_shp(run_outs, path_to_folder, flow_id):
+def get_runouts_shp(run_outs, path_to_folder, flow_id, crs):
     # import points from slope file
     pointDf = pd.read_csv(run_outs, header=0, sep=',')
     pointDf.head()
@@ -65,7 +65,7 @@ def get_runouts_shp(run_outs, path_to_folder, flow_id):
     # open a fiona object
     name_runouts = 'run_outs_' + flow_id + '.shp'
     pointShp = fiona.open(path_to_folder+'map/' + name_runouts, mode='w',
-                         driver='ESRI Shapefile', schema=schema, crs="EPSG:32740")
+                         driver='ESRI Shapefile', schema=schema, crs=crs)
 
     # iterate over each row in the dataframe and save record
     for index, row in pointDf.iterrows():

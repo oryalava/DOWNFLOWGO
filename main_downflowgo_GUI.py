@@ -10,7 +10,10 @@ import datetime
 
 
 if __name__ == "__main__":
-
+    crs = "EPSG:32740"
+    path_to_resources = "/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF"
+    path_to_eruptions = "/Users/chevrel/GoogleDrive/Eruption_PdF"
+    
     def get_folder():
         folder_path = filedialog.askdirectory()
         if folder_path:
@@ -20,7 +23,7 @@ if __name__ == "__main__":
     def get_file_name(entry_var):
         file_path = filedialog.askopenfilename()
         if file_path:
-            entry_var.set(file_path)  # Mettez à jour la variable d'entrée avec le chemin d'accès sélectionné
+            entry_var.set(file_path)
     def get_values_and_create_csv():
         path_to_results = entry_path_to_results_var.get()
         name = entry_name_var.get()
@@ -34,7 +37,6 @@ if __name__ == "__main__":
             if os.path.getsize(csv_vent_file) == 0:
                 csvwriter.writerow(['flow_id', 'X', 'Y'])
             csvwriter.writerow([name, easting, northing])
-        #print("csv_vent_file created under:", csv_vent_file)
 
     # Global variable to store the loaded CSV file path
     loaded_csv_file_path = None
@@ -87,12 +89,10 @@ if __name__ == "__main__":
         run_window = tk.Toplevel(root)
         run_window.title("Run Downflowgo")
         tk.Label(run_window, text="Check selected files:").pack()
-
-        # Exécuter les fonctions get_values_and_create_csv() et get_values()
         get_values_and_create_csv()
         values = get_values()
 
-        # Afficher les résultats dans la fenêtre
+        # Show results in a new window
         results_text = tk.Text(run_window, height=7, width=100)
         results_text.pack()
         results_text.tag_configure("bold", font=("arial", 12, "bold"))
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         results_text.insert(tk.END, "DEM:", "bold", f" {values['dem']}\n")
         results_text.insert(tk.END, "JSON:", "bold", f" {values['json_file']}\n")
 
-        # Bouton lancer Downflowgo
+        # Activate Downflowgo button
         button_frame = tk.Frame(run_window)
         button_frame.pack()
         style = ttk.Style()
@@ -111,15 +111,15 @@ if __name__ == "__main__":
                   foreground=[('active', 'red'), ('pressed', 'orange')],
                   background=[('active', 'orange'), ('pressed', 'red')])
 
-        volcano_button = ttk.Button(button_frame, text="RUN DOWNFLOWGO", command=lambda: run_downflowgo(values,run_window),
+        volcano_button = ttk.Button(button_frame, text="RUN DOWNFLOWGO", command=lambda: run_downflowgo(values,run_window,crs),
                                     style="Volcano.TButton")
         volcano_button.pack()
-    def run_downflowgo(values,run_window):
+    def run_downflowgo(values,run_window,crs):
         path_to_results = values['path_to_results']
         dem = values['dem']
         template_json_file = values['json_file']
         csv_vent_file = values['csv_vent_file']
-        downflowcpp.run_downflowgo(path_to_results, dem, csv_vent_file, template_json_file)
+        downflowcpp.run_downflowgo(path_to_results, dem, csv_vent_file, template_json_file, crs)
         open_create_map_window(run_window, dem)
     def open_create_map_window(run_window,dem):
         map_window = tk.Toplevel(root)
@@ -131,11 +131,11 @@ if __name__ == "__main__":
 
         #  Make button to browse layers for the map
         ## TODO:  change path to prefered Background
-        file1_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/mapping_data/layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
-        file2_var = tk.StringVar(value="0")
+        file1_var = tk.StringVar(value=path_to_resources+"/mapping_data/layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
+        file2_var = tk.StringVar(value=path_to_resources+"/mapping_data/layers/stations_OVPF/All_Stations_Ovpf_update_2022.shp")
         file3_var = tk.StringVar(value="0")
-        ##TODO:  change path to prefered logos
-        file4_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/mapping_data/map/accessoires/all_logo.png")
+        ##TODO: change path to prefered logos
+        file4_var = tk.StringVar(value=path_to_resources+"/mapping_data/map/accessoires/all_logo.png")
 
         file1_frame = tk.Frame(map_window)
         file1_frame.pack(anchor=tk.W)
@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
         file2_frame = tk.Frame(map_window)
         file2_frame.pack(anchor=tk.W)
-        label_file2 = tk.Label(file2_frame, text="OVPF stations (.shp): (0 if not)")
+        label_file2 = tk.Label(file2_frame, text="Monitoring Network (.shp): (0 if not)")
         label_file2.pack(side=tk.LEFT)
         entry_file2 = tk.Entry(file2_frame, textvariable=file2_var, width=60)
         entry_file2.pack(side=tk.LEFT)
@@ -173,8 +173,7 @@ if __name__ == "__main__":
         button_browse4 = tk.Button(file4_frame, text="Browse", command=lambda: get_file_name(file4_var))
         button_browse4.pack(side=tk.LEFT)
 
-
-        # Bouton Create Map
+        # Button to create Map
         button_frame = tk.Frame(map_window)
         button_frame.pack()
         style = ttk.Style()
@@ -192,6 +191,7 @@ if __name__ == "__main__":
 
         no_button = ttk.Button(button_frame, text="NO", command=lambda: close_all_windows(map_window, run_window, root))
         no_button.pack(side=tk.LEFT)
+
     def process_and_create_mapping(values, file1_path, file2_path, file3_path, file4_path, map_window, run_window, dem):
         map_layers = process_files(file1_path, file2_path, file3_path, file4_path)
         if loaded_csv_file_path:
@@ -211,38 +211,38 @@ if __name__ == "__main__":
     def process_files(file1_path, file2_path,file3_path,file4_path):
         map_layers = {
             'tiff_file': file1_path,
-            'station_ovpf_path': file2_path,
+            'monitoring_network_path': file2_path,
             'lava_flow_outline_path': file3_path,
             'logo': file4_path
         }
         return map_layers
+
     def close_all_windows(*windows):
         for window in windows:
             window.destroy()
 
-    # Création de la fenêtre principale
+    # Create main window
     root = tk.Tk()
     root.title("Enter Coordinates and File Names")
     folder_frame = tk.Frame(root)
     folder_frame.pack(anchor=tk.W)
 
-    # Ajuster la largeur de la fenêtre
+    # Adjust size window
     window_width = 1000  # Définir la largeur souhaitée
     window_height = 200  # Définir la hauteur souhaitée
     root.geometry(f"{window_width}x{window_height}")
 
 
-    # Sélection du dossier
+    # Select main folder
     label_path_to_results = tk.Label(folder_frame, text="Path to Eruption Results:")
-    label_path_to_results.pack(side=tk.LEFT) # Aligner à gauche
-    ##TODO:  change path to prefered folder
-    entry_path_to_results_var = tk.StringVar(value="/Users/chevrel/GoogleDrive/Eruption_PdF/test")
+    label_path_to_results.pack(side=tk.LEFT)
+    entry_path_to_results_var = tk.StringVar(value=path_to_eruptions+"/test")
     entry_path_to_results = tk.Entry(folder_frame, textvariable=entry_path_to_results_var, width=50)
     entry_path_to_results.pack(side=tk.LEFT)
     button_browse = tk.Button(folder_frame, text="Browse", command=get_folder)
     button_browse.pack(side=tk.LEFT)
 
-    # Nom
+    # Name of the vent
     name_frame = tk.Frame(root)
     name_frame.pack(anchor=tk.W)
     label_name = tk.Label(name_frame, text="Name of the vent:")
@@ -251,26 +251,21 @@ if __name__ == "__main__":
     entry_name = tk.Entry(name_frame, textvariable=entry_name_var, width=20)
     entry_name.pack(side=tk.LEFT)
 
-    # Easting et Northing
+    # Define Easting and Northing
     easting_northing_frame = tk.Frame(root)
     easting_northing_frame.pack(anchor=tk.W)
-
     # Easting
     label_easting = tk.Label(easting_northing_frame, text="Easting (UTM):")
     label_easting.pack(side=tk.LEFT)
-
     entry_easting_var = tk.StringVar(value="369082.7")
     entry_easting = tk.Entry(easting_northing_frame, textvariable=entry_easting_var, width=15)
     entry_easting.pack(side=tk.LEFT)
-
     #  Northing
     label_northing = tk.Label(easting_northing_frame, text="Northing (UTM):")
     label_northing.pack(side=tk.LEFT)
-
     entry_northing_var = tk.StringVar(value="7647204.29")
     entry_northing = tk.Entry(easting_northing_frame, textvariable=entry_northing_var, width=15)
     entry_northing.pack(side=tk.LEFT)
-
 
     #CSV file
     csv_frame = tk.Frame(root)
@@ -280,25 +275,25 @@ if __name__ == "__main__":
     button_load_csv = tk.Button(csv_frame, text="Load CSV", command=load_csv_file)
     button_load_csv.pack(side=tk.LEFT)
 
-    # Nom du MNT (DEM)
+    # Define DEM
     dem_frame = tk.Frame(root)
     dem_frame.pack(anchor=tk.W)
     label_dem_name = tk.Label(dem_frame, text="DEM:")
     label_dem_name.pack(side=tk.LEFT)  # Aligner à gauche
     ##TODO:  change path to prefered DEM
-    entry_dem_name_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/DEM/DEM-20240411-net-5m.asc")
+    entry_dem_name_var = tk.StringVar(value=path_to_resources+"/DEM/DEM-20240411-net-5m.asc")
     entry_dem_name = tk.Entry(dem_frame, textvariable=entry_dem_name_var, width=80)
     entry_dem_name.pack(side=tk.LEFT)
     button_browse = tk.Button(dem_frame, text="Browse", command=lambda: get_file_name(entry_dem_name_var))
     button_browse.pack(side=tk.LEFT)
 
-    # Fichier JSON
+    # JSON File
     json_frame = tk.Frame(root)
     json_frame.pack(anchor=tk.W)
     label_json_file = tk.Label(json_frame, text="JSON File:")
     label_json_file.pack(side=tk.LEFT)  # Aligner à gauche
     ##TODO:  change path to prefered json
-    entry_json_file_var = tk.StringVar(value="/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/PdF_template.json")
+    entry_json_file_var = tk.StringVar(value=path_to_resources+"/PdF_template.json")
     entry_json_file = tk.Entry(json_frame, textvariable=entry_json_file_var, width=80)
     entry_json_file.pack(side=tk.LEFT)
     button_browse = tk.Button(json_frame, text="Browse", command=lambda: get_file_name(entry_json_file_var))
@@ -306,7 +301,7 @@ if __name__ == "__main__":
     edit_button = tk.Button(json_frame, text="Edit Json", command=open_editor)
     edit_button.pack(side=tk.LEFT)
 
-    # Bouton ouvrir fenetre Downflowgo
+    # Button to open Downflowgo window
     style = ttk.Style()
     style.configure("Volcano.TButton", font=('Helvetica', 12, 'bold'))
     style.map("Volcano.TButton",
@@ -316,7 +311,7 @@ if __name__ == "__main__":
     volcano_button = ttk.Button(root, text="DOWNFLOWGO", command=lambda:open_run_window(),style="Volcano.TButton")
     volcano_button.pack()
 
-    # Lancement de la boucle principale
+    # Start main loop
     root.mainloop()
 
 

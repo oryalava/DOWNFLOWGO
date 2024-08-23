@@ -36,7 +36,7 @@ issn: 0094- 8276. https://doi.org/10.1029/2004gl021718.**
 This folder contains :
 
 1) a folder **DOWNFLOW** containing the code in c++ of DOWNFLOW [Favalli 2005](https://doi.org/10.1029/2004gl021718) 
-provided by Massimiliano Favallia (hopefully soon available on github).
+provided by Massimiliano Favalli (hopefully soon available on github). We need to compile downflow.cpp. For this go in your terminal, enter the folder DOWNFLOW and type "make", this will compile and make the executif file.
 
 
 2) the following scripts :

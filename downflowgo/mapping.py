@@ -11,7 +11,6 @@ from matplotlib.patches import Polygon
 import os
 import datetime
 
-#if __name__ == "__main__":
 
 def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
 
@@ -25,14 +24,14 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
 
     tiff_file = map_layers['tiff_file']
     lavaflow_outline_path = map_layers['lava_flow_outline_path']
-    station_ovpf_path = map_layers.get('station_ovpf_path')  # Récupérer le chemin d'accès aux stations OVPF
+    monitoring_network_path = map_layers.get('monitoring_network_path')  # Récupérer le chemin d'accès aux monitoring network
     logo = map_layers['logo']
 
 
     # Create the map figure
     fig, ax = plt.subplots(figsize=(8, 7))
 
-    # Load the TIFF image with Pillow, convert it to RGB and read
+    # Load the TIFF image, convert it to RGB and read
     tiff_image = Image.open(tiff_file)
     tiff_image_rgb = tiff_image.convert('RGB')
     with rasterio.open(tiff_file) as src:
@@ -77,13 +76,13 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
     ax.set_xlim(xllcorner_dem, xllcorner_dem + ncols_dem * cellsize_dem)
     ax.set_ylim(yllcorner_dem, yllcorner_dem + nrows_dem * cellsize_dem)
 
-    # ------------ Plot lava flow outline and stations ----------
+    # ------------ Plot lava flow outline and monitoring network ----------
 
     if lavaflow_outline_path == str(0):
         pass
     else:
         lavaflow_outline = fiona.open(lavaflow_outline_path)
-    # Plot the lavaflow outline layer
+
         for feature in lavaflow_outline:
             geometry = shape(feature['geometry'])
             if geometry.geom_type == 'Polygon':
@@ -94,33 +93,37 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
                 polygon = Polygon(polygon_coords, edgecolor='black', facecolor='none')
                 ax.add_patch(polygon)
 
-    if station_ovpf_path == str(0):
+    if monitoring_network_path == str(0):
         pass
     else:
-        station_ovpf = fiona.open(station_ovpf_path)
+        monitoring_network = fiona.open(monitoring_network_path)
 
-    # Plot stations ovpf vector layer
-        label_station = []
-        point_station = []
-        for feature in station_ovpf:
+    # Plot monitoring network vector layer
+        label_monitoring_network = []
+        point_monitoring_network = []
+        for feature in monitoring_network:
             geometry = shape(feature['geometry'])
             properties = feature['properties']
             if geometry.geom_type == 'Point':
                 x, y = geometry.x, geometry.y
-                point_station.append((x, y))
-                label_station.append(properties['Name'])
+                point_monitoring_network.append((x, y))
+                label_monitoring_network.append(properties['Name'])
                 ax.plot(x, y, 'k.')
-        # sort out the point according their coordinates y
-        sorted_points = sorted(zip(point_station, label_station), key=lambda p: p[0][1])
-        # Displaying station_ovpf labels with automatic adjustment of label positions to avoid overlapping
-        text_station = []
-        previous_y = None
-        for (x, y), label in sorted_points:
-            if previous_y is None or y - previous_y > 5:  #value in UTM between two points
-                text_station.append(ax.annotate(label, (x, y), xytext=(-1, 1), color='k', fontsize=7, textcoords='offset points'))
-                previous_y = y
-        adjust_text(text_station)
+        # Create a dictionary to keep only the smallest label (lexicographically) for each unique point
+        unique_monitoring_network = {}
+        for (x, y), label in zip(point_monitoring_network, label_monitoring_network):
+            if (x, y) not in unique_monitoring_network or label < unique_monitoring_network[(x, y)]:
+                unique_monitoring_network[(x, y)] = label
 
+        # Displaying the monitoring_network names just above the points
+        for (x, y), label in unique_monitoring_network.items():
+            ax.annotate(
+                label, (x, y),
+                xytext=(0, 3),  # Offset of 5 units above the point
+                textcoords='offset points',
+                color='black', fontsize=8,
+                ha='center'  # Center the text horizontally
+            )
     # ------------ Plot vector layers simulation path + vent + run out ----------
 
     # Load vector layers
@@ -154,32 +157,22 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
             points.append((x, y))
             labels.append(properties['Effusion_r'])
             ax.plot(x, y, 'b', marker=7)
+        # Displaying runout labels just above the points
+        # Create a dictionary to keep only the smallest label for each unique point
+        unique_points = {}
+        for (x, y), label in zip(points, labels):
+            if (x, y) not in unique_points or label < unique_points[(x, y)]:
+                unique_points[(x, y)] = label
 
-    # Create a dictionary to keep only the smallest label for each unique point
-    unique_points = {}
-    for (x, y), label in zip(points, labels):
-        if (x, y) not in unique_points or label < unique_points[(x, y)]:
-            unique_points[(x, y)] = label
-
-    # Convert dictionary back to sorted list of points and labels
-    sorted_points = sorted(unique_points.items(), key=lambda p: p[0][1])
-    # Displaying runout labels with automatic adjustment and automatic adjustment of label positions
-    # to avoid overlapping
-    texts = []
-    previous_y = None
-    for (x, y), label in sorted_points:
-        if previous_y is None or y - previous_y > 5:  # Ajuster la valeur selon votre besoin (en utm)
-            texts.append(ax.annotate(label, (x, y), xytext=(-3, 5), color='blue', fontsize=10, textcoords='offset points'))
-            previous_y = y
-        else:
-            # If labels are too close, move the label and draw a line
-            offset_x, offset_y = 5, 5
-            texts.append(ax.annotate(
-                label, (x, y), xytext=(x + offset_x, y + offset_y),
-                arrowprops=dict(arrowstyle="->", color='b'), color='b', fontsize=10
-            ))
-    adjust_text(texts)
-
+        # Displaying the smallest runout labels just above the points
+        for (x, y), label in unique_points.items():
+            ax.annotate(
+                label, (x, y),
+                xytext=(0, 8),  # Offset of 5 units above the point
+                textcoords='offset points',
+                color='blue', fontsize=10,
+                ha='center'  # Center the text horizontally
+            )
 
     # ------------ Add legend and colorbar ------------
 
@@ -188,10 +181,10 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
     ax.plot([], [], '-r', label='Trajectoire principale')
     ax.plot([], [], 'bv', markersize=5, label='Distances atteintes \npour un débit donné (m$^{3}$/s)')
 
-    if station_ovpf_path == str(0):
+    if monitoring_network_path == str(0):
         pass
     else:
-        ax.plot([], [], 'k.', markersize=5, label='Stations OVPF')
+        ax.plot([], [], 'k.', markersize=5, label='Réseau OVPF')
 
     if lavaflow_outline_path == str(0):
         pass
@@ -228,6 +221,15 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
     ab = AnnotationBbox(logo_box, logo_anchor, xycoords='axes fraction', frameon=False)
     ax.add_artist(ab)
 
+    # Adding the "UNVERIFIED DATA" text in the middle of the map
+    ax.text(
+        0.5, 0.5, 'UNVERIFIED DATA \n NOT FOR DISTRIBUTION',
+        transform=ax.transAxes,  # This makes the text relative to the axes
+        fontsize=30, color='red', alpha=0.5,  # Red color, semi-transparent
+        ha='center', va='center',  # Centered horizontally and vertically
+        rotation=45,  # Rotate the text 45 degrees
+        fontweight='bold')  # Bold text
+
     # ------------ Final adjustments ------------
 
     #show label from y axis en completo
@@ -259,7 +261,7 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
 
     tiff_file = map_layers['tiff_file']
     lavaflow_outline_path = map_layers['lava_flow_outline_path']
-    station_ovpf_path = map_layers.get('station_ovpf_path')  # Récupérer le chemin d'accès aux stations OVPF
+    monitoring_network_path = map_layers.get('monitoring_network_path')  # Récupérer le chemin d'accès aux monitoring network
     logo = map_layers['logo']
 
 
@@ -311,7 +313,7 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     ax.set_xlim(xllcorner_dem, xllcorner_dem + ncols_dem * cellsize_dem)
     ax.set_ylim(yllcorner_dem, yllcorner_dem + nrows_dem * cellsize_dem)
 
-    # ------------ Plot lava flow outline and stations ----------
+    # ------------ Plot lava flow outline and monitoring_network ----------
 
     if lavaflow_outline_path == str(0):
         pass
@@ -328,39 +330,37 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
                 polygon = Polygon(polygon_coords, edgecolor='black', facecolor='none')
                 ax.add_patch(polygon)
 
-    if station_ovpf_path == str(0):
+    if monitoring_network_path == str(0):
         pass
     else:
-        station_ovpf = fiona.open(station_ovpf_path)
+        monitoring_network = fiona.open(monitoring_network_path)
 
-    # Plot stations ovpf vector layer
-        label_station = []
-        point_station = []
-        for feature in station_ovpf:
+    # Plot monitoring network vector layer
+        label_monitoring_network = []
+        point_monitoring_network = []
+        for feature in monitoring_network:
             geometry = shape(feature['geometry'])
             properties = feature['properties']
             if geometry.geom_type == 'Point':
                 x, y = geometry.x, geometry.y
-                point_station.append((x, y))
-                label_station.append(properties['Name'])
+                point_monitoring_network.append((x, y))
+                label_monitoring_network.append(properties['Name'])
                 ax.plot(x, y, 'k.')
-        # sort out the point according their coordinates y
-        sorted_points = sorted(zip(point_station, label_station), key=lambda p: p[0][1])
-        # Displaying station_ovpf labels with automatic adjustment of label positions to avoid overlapping
-        text_station = []
-        previous_y = None
-        for (x, y), label in sorted_points:
-            if previous_y is None or y - previous_y > 10:  #value in UTM between two points
-                text_station.append(ax.annotate(label, (x, y), xytext=(-1, 1), color='k', fontsize=7, textcoords='offset points'))
-                previous_y = y
-            else:
-                # If labels are too close, move the label and draw a line
-                offset_x, offset_y = 10, 10
-                text_station.append(ax.annotate(
-                    label, (x, y), xytext=(x + offset_x, y + offset_y),
-                    arrowprops=dict(arrowstyle="->", color='k'), color='k', fontsize=7
-                ))
-        adjust_text(text_station)
+        # Create a dictionary to keep only the smallest label (lexicographically) for each unique point
+        unique_monitoring_network = {}
+        for (x, y), label in zip(point_monitoring_network, label_monitoring_network):
+            if (x, y) not in unique_monitoring_network or label < unique_monitoring_network[(x, y)]:
+                unique_monitoring_network[(x, y)] = label
+
+        # Displaying the monitoring_network names just above the points
+        for (x, y), label in unique_monitoring_network.items():
+            ax.annotate(
+                label, (x, y),
+                xytext=(0, 3),  # Offset of 5 units above the point
+                textcoords='offset points',
+                color='black', fontsize=8,
+                ha='center'  # Center the text horizontally
+            )
 
     # ------------ Plot vector layers simulation path + vent ----------
 
@@ -390,10 +390,10 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     ax.plot([], [], 'r^', markersize=7, label='Bouche éruptive ('+ flow_id+')')
     ax.plot([], [], '-r', label='Trajectoire principale')
 
-    if station_ovpf_path == str(0):
+    if monitoring_network_path == str(0):
         pass
     else:
-        ax.plot([], [], 'k.', markersize=5, label='Stations OVPF')
+        ax.plot([], [], 'k.', markersize=5, label='Réseau OVPF')
 
     if lavaflow_outline_path == str(0):
         pass
@@ -416,7 +416,7 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     sm = ScalarMappable(cmap=cmap2, norm=norm2)
     sm.set_array([])  # Set empty array for the colorbar
     cbar = plt.colorbar(sm, cax=cax, orientation='horizontal')
-    cbar.ax.set_title("Simulation DOWNFLOWGO \nProbabilité de passage de la coulée\n ", fontsize=8, loc='left')
+    cbar.ax.set_title("Simulation DOWNFLOW \nProbabilité de passage de la coulée\n ", fontsize=8, loc='left')
     cbar.set_label("Basse                        Haute", fontsize=8, loc='left')
     cbar.set_ticks([])
     cbar.set_ticklabels([])
@@ -437,11 +437,20 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     #formatter.set_scientific(False)
     #ax.yaxis.set_major_formatter(formatter)
 
+    # Adding the "UNVERIFIED DATA" text in the middle of the map
+    ax.text(
+        0.5, 0.5, 'UNVERIFIED DATA \n NOT FOR DISTRIBUTION',
+        transform=ax.transAxes,  # This makes the text relative to the axes
+        fontsize=30, color='red', alpha=0.5,  # Red color, semi-transparent
+        ha='center', va='center',  # Centered horizontally and vertically
+        rotation=45,  # Rotate the text 45 degrees
+        fontweight='bold')  # Bold text
+
     # Adjust the position of the legend and colorbar
     # Rotate label of Y and orientate vertically
     ax.set_yticks(ax.get_yticks())
     ax.set_yticklabels(ax.get_yticklabels(), rotation='vertical')
-    ax.set_title('Carte de simulation DOWNFLOWGO pour l\'éruption en cours\n' + str(Date))
+    ax.set_title('Carte de simulation DOWNFLOW pour l\'éruption en cours\n' + str(Date))
 
     plt.savefig(path_to_folder+'/map_'+ flow_id+'.png', dpi=300, bbox_inches='tight')
 #    plt.savefig('./map_'+ flow_id+'.png', dpi=300, bbox_inches='tight')

@@ -650,4 +650,3 @@ dependencies:
       - thermocouples-reference==0.20
       - uncertainties==3.1.7
       - utm==0.7.0
-prefix: /Users/chevrel/anaconda3
