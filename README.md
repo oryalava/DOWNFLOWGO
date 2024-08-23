@@ -1,7 +1,7 @@
  # Welcome to DOWNFLOWGO
 
 A number of numerical models exist to support lava flow modeling (see review by Dietterich et al. [2017]). 
-Here, we combine the stochastic model DOWNFLOW [Favalli 2005](https://doi.org/10.1029/2004gl021718) with the deterministic model FLOWGO [Harris and Rowland 2001](https://doi.org/10.1007/s004450000120) to support hazard assessment at Piton de la Fournaise , mainly.
+Here, we combine the stochastic model DOWNFLOW [Favalli et al. 2005](https://doi.org/10.1029/2004gl021718) with the deterministic model FLOWGO [Harris and Rowland 2001](https://doi.org/10.1007/s004450000120) to support hazard assessment at Piton de la Fournaise , mainly.
 
 DOWNFLOW provides the most likely lava flow paths, including the LoSD and area of coverage. 
 For responding to current crises at Piton de la Fournaise, this model was calibrated by fitting the output flow coverage 
@@ -28,15 +28,15 @@ Volcanica 5(2), pp. 313–334. https://doi.org/10.30909/vol.05.02.313334
 Harris, A. J. L. and S. Rowland (2001). “FLOWGO: a kinematic thermo-rheological model for lava flowing in a channel”. 
 Bulletin of Volcanology 63(1), pages 20–44. issn: 1432-0819. https://doi.org/10.1007/s004450000120.
 
-Favalli, M. (2005). “Forecasting lava flow paths by a stochastic approach”. Geophysical Research Letters 32(3). 
+Favalli, M. et al. (2005). “Forecasting lava flow paths by a stochastic approach”. Geophysical Research Letters 32(3). 
 issn: 0094- 8276. https://doi.org/10.1029/2004gl021718.**
 
 
 ## Description of the package 
-This folder contains :
+This folder includes :
 
-1) a folder **DOWNFLOW** containing the code in c++ of DOWNFLOW [Favalli 2005](https://doi.org/10.1029/2004gl021718) 
-provided by Massimiliano Favalli (hopefully soon available on github). We need to compile downflow.cpp. For this go in your terminal, enter the folder DOWNFLOW and type "make", this will compile and make the executif file.
+1) a folder **DOWNFLOW** containing the code in c++ of DOWNFLOW [Favalli et al. 2005](https://doi.org/10.1029/2004gl021718) 
+provided by Massimiliano Favalli (hopefully soon available on github).
 
 
 2) the following scripts :
@@ -118,7 +118,7 @@ In the dedicated folder chosen in step 1) you will find:
 You can either use the files to create your own map with any GIS system or directly use the map.png
 
  # Authors:
- Dr. Magdalena Oryaëlle Chevrel (oryaelle.chevrel@ird.com) - Laboratoire Magmas et Volcans
+ Dr. Magdalena Oryaëlle Chevrel (oryaelle.chevrel@ird.fr) - Laboratoire Magmas et Volcans
 
  # Licence:
 The current license of the software is GPL v3.0.
