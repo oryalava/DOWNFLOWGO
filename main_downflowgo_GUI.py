@@ -5,7 +5,7 @@ import csv
 import downflowgo.downflowcpp as downflowcpp
 from tkinter import ttk
 import subprocess
-import downflowgo.mapping as mapping
+import downflowgo.mapping_en as mapping
 import datetime
 
 

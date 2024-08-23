@@ -177,19 +177,19 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
     # ------------ Add legend and colorbar ------------
 
     # Add the legend image to the map
-    ax.plot([], [], 'r^', markersize=7, label='Bouche éruptive ('+ flow_id+')')
-    ax.plot([], [], '-r', label='Trajectoire principale')
-    ax.plot([], [], 'bv', markersize=5, label='Distances atteintes \npour un débit donné (m$^{3}$/s)')
+    ax.plot([], [], 'r^', markersize=7, label='Main vent ('+ flow_id+')')
+    ax.plot([], [], '-r', label='Line of steepest descent')
+    ax.plot([], [], 'bv', markersize=5, label='Runouts for a given \neffusion rate (m$^{3}$/s)')
 
     if monitoring_network_path == str(0):
         pass
     else:
-        ax.plot([], [], 'k.', markersize=5, label='Réseau OVPF')
+        ax.plot([], [], 'k.', markersize=5, label='Monitoring Network')
 
     if lavaflow_outline_path == str(0):
         pass
     else:
-        ax.plot([], [], 'k-', markersize=10, label='Contour de la coulée')
+        ax.plot([], [], 'k-', markersize=10, label='Lava flow outline')
 
     legend=ax.legend(bbox_to_anchor=(1, 0.7), loc="upper left", fontsize='8')
     legend.get_frame().set_linewidth(0)
@@ -207,8 +207,8 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
     sm = ScalarMappable(cmap=cmap2, norm=norm2)
     sm.set_array([])  # Set empty array for the colorbar
     cbar = plt.colorbar(sm, cax=cax, orientation='horizontal')
-    cbar.ax.set_title("Simulation DOWNFLOWGO \n \n \nProbabilité de passage de la coulée", fontsize=8, loc='left')
-    cbar.set_label("Basse                        Haute", fontsize=8, loc='left')
+    cbar.ax.set_title("DOWNFLOWGO modelling \n \nLava flow path probability", fontsize=8, loc='left')
+    cbar.set_label("Low                             High", fontsize=8, loc='left')
     cbar.set_ticks([])
     cbar.set_ticklabels([])
     #cbar.ax.set_position([0.71, 0.71, 0.2, 0.05])
@@ -241,7 +241,7 @@ def create_map_downflowgo(path_to_folder, dem, flow_id, map_layers):
     # Rotate label of Y and orientate vertically
     ax.set_yticks(ax.get_yticks())
     ax.set_yticklabels(ax.get_yticklabels(), rotation='vertical')
-    ax.set_title('Carte de simulation DOWNFLOWGO pour l\'éruption en cours\n' + str(Date))
+    ax.set_title('Short-term hazard map using DOWNFLOWGO modelling \n for the ongoing eruption : ' + str(Date))
 
     plt.savefig(path_to_folder+'/map_'+ flow_id+'.png', dpi=300, bbox_inches='tight')
     #plt.savefig('./map.png', dpi=300, bbox_inches='tight')
@@ -387,18 +387,18 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     # ------------ Add legend and colorbar ------------
 
     # Add the legend image to the map
-    ax.plot([], [], 'r^', markersize=7, label='Bouche éruptive ('+ flow_id+')')
-    ax.plot([], [], '-r', label='Trajectoire principale')
+    ax.plot([], [], 'r^', markersize=7, label='Main vent ('+ flow_id+')')
+    ax.plot([], [], '-r', label='Line of steepest descend')
 
     if monitoring_network_path == str(0):
         pass
     else:
-        ax.plot([], [], 'k.', markersize=5, label='Réseau OVPF')
+        ax.plot([], [], 'k.', markersize=5, label='Monitoring network')
 
     if lavaflow_outline_path == str(0):
         pass
     else:
-        ax.plot([], [], 'k-', markersize=10, label='Contour de la coulée')
+        ax.plot([], [], 'k-', markersize=10, label='Lava flow outline')
 
     legend=ax.legend(bbox_to_anchor=(1, 0.7), loc="upper left", fontsize='8')
     legend.get_frame().set_linewidth(0)
@@ -416,8 +416,8 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     sm = ScalarMappable(cmap=cmap2, norm=norm2)
     sm.set_array([])  # Set empty array for the colorbar
     cbar = plt.colorbar(sm, cax=cax, orientation='horizontal')
-    cbar.ax.set_title("Simulation DOWNFLOW \n \n \n Probabilité de passage de la coulée\n ", fontsize=8, loc='left')
-    cbar.set_label("Basse                        Haute", fontsize=8, loc='left')
+    cbar.ax.set_title("DOWNFLOW modelling \nLava flow path probability", fontsize=8, loc='left')
+    cbar.set_label("Low                              High", fontsize=8, loc='left')
     cbar.set_ticks([])
     cbar.set_ticklabels([])
     #cbar.ax.set_position([0.71, 0.71, 0.2, 0.05])
@@ -450,7 +450,7 @@ def create_map_downflow(path_to_folder, dem, flow_id, map_layers):
     # Rotate label of Y and orientate vertically
     ax.set_yticks(ax.get_yticks())
     ax.set_yticklabels(ax.get_yticklabels(), rotation='vertical')
-    ax.set_title('Carte de simulation DOWNFLOW pour l\'éruption en cours\n' + str(Date))
+    ax.set_title('Short-term hazard map using DOWNFLOW modelling \n for the ongoing eruption : ' + str(Date))
 
     plt.savefig(path_to_folder+'/map_'+ flow_id+'.png', dpi=300, bbox_inches='tight')
 #    plt.savefig('./map_'+ flow_id+'.png', dpi=300, bbox_inches='tight')
