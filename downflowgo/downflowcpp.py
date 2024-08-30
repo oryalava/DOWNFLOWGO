@@ -22,8 +22,8 @@ def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file, crs):
         for row in csvreader:
 
             flow_id = str(row['flow_id'])
-            lat = str(row['X'])
-            long = str(row['Y'])
+            long = str(row['X'])
+            lat = str(row['Y'])
 
             name_folder = path_to_results + '/' + flow_id
             path_to_folder = name_folder + '/'
@@ -42,17 +42,17 @@ def run_downflowgo(path_to_results,dem,csv_vent_file,template_json_file, crs):
                         output.write(line)
 
             # this returns an asc file with the lava flow path probabilities
-            get_downflow_probabilities(lat, long, dem, path, parameter_file_downflow)
+            get_downflow_probabilities(long,lat,  dem, path, parameter_file_downflow)
             print('get_downflow_probabilities', get_downflow_probabilities)
 
             print("******************* DOWNFLOW probability executed: sim.asc created **************************")
 
-            get_downflow_filled_dem(lat, long, dem, path, parameter_file_downflow)
+            get_downflow_filled_dem(long,lat,  dem, path, parameter_file_downflow)
             # this returns an asc file with new (filled) DEM
             print("************************ DOWNFLOW filled DEM done *********")
 
             filled_dem = 'dem_filled_DH0.001_N1000.asc'
-            get_downflow_losd(lat, long, filled_dem, path, parameter_file_downflow)
+            get_downflow_losd( long, lat,filled_dem, path, parameter_file_downflow)
             # this returns the profile.txt
             os.remove(path_to_folder + "dem_filled_DH0.001_N1000.asc")
             # create map folder
@@ -111,8 +111,8 @@ def run_downflow_simple(path_to_results,dem,csv_vent_file, crs):
         for row in csvreader:
 
             flow_id = str(row['flow_id'])
-            lat = str(row['X'])
-            long = str(row['Y'])
+            long = str(row['X'])
+            lat = str(row['Y'])
 
             name_folder = path_to_results + '/' + flow_id
             path_to_folder = name_folder + '/'
@@ -131,17 +131,17 @@ def run_downflow_simple(path_to_results,dem,csv_vent_file, crs):
                         output.write(line)
 
             # this returns an asc file with the lava flow path probabilities
-            get_downflow_probabilities(lat, long, dem, path, parameter_file_downflow)
+            get_downflow_probabilities(long,lat,  dem, path, parameter_file_downflow)
             print('get_downflow_probabilities', get_downflow_probabilities)
 
             print("******************* DOWNFLOW probability executed: sim.asc created **************************")
 
-            get_downflow_filled_dem(lat, long, dem, path, parameter_file_downflow)
+            get_downflow_filled_dem(long, lat, dem, path, parameter_file_downflow)
             # this returns an asc file with new (filled) DEM
             print("************************ DOWNFLOW filled DEM done *********")
 
             filled_dem = 'dem_filled_DH0.001_N1000.asc'
-            get_downflow_losd(lat, long, filled_dem, path, parameter_file_downflow)
+            get_downflow_losd(long,lat,  filled_dem, path, parameter_file_downflow)
             # this returns the profile.txt
             os.remove(path_to_folder + "dem_filled_DH0.001_N1000.asc")
             # create map folder
@@ -169,7 +169,7 @@ def run_downflow_simple(path_to_results,dem,csv_vent_file, crs):
 def run_downflow(parameter_file_downflow, path):
     # Run DOWNFLOW
     os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
-def get_downflow_probabilities(lat, long, dem, path, parameter_file_downflow):
+def get_downflow_probabilities(long,lat, dem, path, parameter_file_downflow):
     """    # Run DOWNFLOW and create a raster file 'sim.asc' with the probability of trajectories for a given dem (dem)
     and a given parameter file"""
 
@@ -180,9 +180,9 @@ def get_downflow_probabilities(lat, long, dem, path, parameter_file_downflow):
             if line.startswith('input_DEM'):
                 output.write('input_DEM '+dem+'\n')
             elif line.startswith('Xorigine'):
-                output.write('Xorigine ' + lat + '\n')
+                output.write('Xorigine ' + long + '\n')
             elif line.startswith('Yorigine'):
-                output.write('Yorigine ' + long + '\n')
+                output.write('Yorigine ' + lat + '\n')
             elif line.startswith('New_h_grid_name'):
                 output.write('#New_h_grid_name ' + '\n')
             elif line.startswith('write_profile'):
@@ -193,7 +193,7 @@ def get_downflow_probabilities(lat, long, dem, path, parameter_file_downflow):
                 output.write(line)
     # Run DOWNFLOW
     os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
-def get_downflow_filled_dem(lat, long, dem, path, parameter_file_downflow):
+def get_downflow_filled_dem(long, lat, dem, path, parameter_file_downflow):
 
     """ Execute DOWNFLOW and create a new DEM where the pit are filled with a thin layer of 1 mm"""
 
@@ -207,9 +207,9 @@ def get_downflow_filled_dem(lat, long, dem, path, parameter_file_downflow):
             if line.startswith('input_DEM'):
                 output.write('input_DEM '+dem+'\n')
             elif line.startswith('Xorigine'):
-                output.write('Xorigine ' + lat + '\n')
+                output.write('Xorigine ' + long + '\n')
             elif line.startswith('Yorigine'):
-                output.write('Yorigine ' + long + '\n')
+                output.write('Yorigine ' + lat + '\n')
             elif line.startswith('DH'):
                 output.write('DH ' + DH + '\n')
             elif line.startswith('n_path'):
@@ -224,7 +224,7 @@ def get_downflow_filled_dem(lat, long, dem, path, parameter_file_downflow):
                 output.write(line)
     # Run DOWNFLOW
     os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
-def get_downflow_losd(lat, long, filled_dem, path,parameter_file_downflow):
+def get_downflow_losd(long, lat, filled_dem, path,parameter_file_downflow):
     """ Execute DOWNFLOW and create the profile.txt """
     n_path = "1"
     DH= "0.001"
@@ -236,9 +236,9 @@ def get_downflow_losd(lat, long, filled_dem, path,parameter_file_downflow):
             if line.startswith('input_DEM'):
                 output.write('input_DEM '+filled_dem+'\n')
             elif line.startswith('Xorigine'):
-                output.write('Xorigine ' + lat + '\n')
+                output.write('Xorigine ' + long + '\n')
             elif line.startswith('Yorigine'):
-                output.write('Yorigine ' + long + '\n')
+                output.write('Yorigine ' + lat + '\n')
             elif line.startswith('DH'):
                 output.write('DH ' + DH + '\n')
             elif line.startswith('n_path'):
