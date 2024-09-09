@@ -1,4 +1,4 @@
-name: env_downflowgo
+name: new_env_downflowgo
 channels:
   - defaults
 dependencies:

@@ -38,7 +38,14 @@ double second(void)
 }
 
 int readline(FILE *fp,char *fline);
-FILE *safe_file_open(char *filename, char *mode);
+FILE* safe_file_open(const char* filename, const char* mode) {
+    FILE* fp = fopen(filename, mode);
+    if (!fp) {
+        fprintf(stderr, "Error opening file: %s\n", filename);
+        exit(EXIT_FAILURE);
+    }
+    return fp;
+};
 
 
 class Grid {

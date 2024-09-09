@@ -3,42 +3,18 @@ import fiona
 import pandas as pd
 import rasterio
 import numpy as np
+from rasterio.transform import from_origin
+from rasterio.crs import CRS
 
-def get_vent_shp(path_to_folder, flow_id, csv_vent_file, crs):
-    # import points from slope file
-    pointDf = pd.read_csv(csv_vent_file, header=0, sep=';')
-    pointDf.head()
-    # define schema for line shape file
-    schema = {
-        'geometry': 'Point',
-        'properties': [('flow_id', 'str'), ('X', 'float'), ('Y', 'float')]
-    }
-
-    # open a fiona object
-    name_vent = 'vent_' + flow_id + '.shp'
-    pointShp = fiona.open(path_to_folder+'map/' + name_vent, mode='w',
-                         driver='ESRI Shapefile', schema=schema, crs=crs)
-
-    # iterate over each row in the dataframe and save record
-    for index, row in pointDf.iterrows():
-        rowDict = {
-            'geometry': {'type': 'Point', 'coordinates': (row['X'], row['Y'])},
-            'properties': {'flow_id': row['flow_id'], 'X': row['X'], 'Y': row['Y']}
-        }
-        pointShp.write(rowDict)
-    # close fiona object
-    pointShp.close()
-
-def get_path_shp(slope_file, path_to_folder,flow_id, crs):
-    # import points from slope file
-    lineDf = pd.read_csv(slope_file, header=0, sep='\t')
+def get_path_shp(losd_file, shp_losd_file, epsg_code):
+    # import points from losd_file
+    lineDf = pd.read_csv(losd_file, header=0, sep='\t')
     lineDf.head()
     # define schema for line shape file
     schema = {'geometry': 'LineString', 'properties': [('L', 'str')]}
-    # open a fiona object
-    name = 'path_'+flow_id+'.shp'
-    lineShp = fiona.open(path_to_folder+'map/' + name, mode='w',
-                         driver='ESRI Shapefile', schema=schema, crs=crs)
+    # open a fiona object and write shp_losd_file.shp
+    lineShp = fiona.open(shp_losd_file, mode='w',
+                         driver='ESRI Shapefile', schema=schema, crs=f'epsg:{epsg_code}')
 
     # get list of points
     xyList = []
@@ -52,20 +28,22 @@ def get_path_shp(slope_file, path_to_folder,flow_id, crs):
     lineShp.write(rowDict)
     # close fiona object
     lineShp.close()
+    print(f"++++++++++++++++++ Losd file is saved in shape format at: '{shp_losd_file}'+++++++++++++++++")
 
-def get_runouts_shp(run_outs, path_to_folder, flow_id, crs):
+
+def get_runouts_shp(run_outs, shp_runouts, epsg_code):
+
     # import points from slope file
     pointDf = pd.read_csv(run_outs, header=0, sep=',')
     pointDf.head()
     # define schema for line shape file
     schema = {'geometry': 'Point', 'properties': [("flow_id", 'str'), ("Effusion_rate", 'int'),
                                                   ("Depth", 'float'),("Width_init", 'float'),
-                                                  ("Elevation_run_out", 'int'),("Distance_run_out", 'int')
+                                                  ("Elevation_run_out", 'int'), ("Distance_run_out", 'int')
                                                    ]}
     # open a fiona object
-    name_runouts = 'run_outs_' + flow_id + '.shp'
-    pointShp = fiona.open(path_to_folder+'map/' + name_runouts, mode='w',
-                         driver='ESRI Shapefile', schema=schema, crs=crs)
+    pointShp = fiona.open(shp_runouts, mode='w',
+                         driver='ESRI Shapefile', schema=schema, crs=f'epsg:{epsg_code}')
 
     # iterate over each row in the dataframe and save record
     for index, row in pointDf.iterrows():
@@ -79,10 +57,35 @@ def get_runouts_shp(run_outs, path_to_folder, flow_id, crs):
         pointShp.write(rowDict)
     # close fiona object
     pointShp.close()
+    print(f"----------- Runouts coordinates are saved as shape file in:'{shp_runouts}'---------------")
 
+def get_vent_shp(csv_vent_file, shp_vent_file, epsg_code):
+    # import points from slope file
+    pointDf = pd.read_csv(csv_vent_file, header=0, sep=';')
+    pointDf.head()
+    # define schema for line shape file
+    schema = {'geometry': 'Point', 'properties': [("flow_id", 'str'),]}
+    # open a fiona object
 
-def crop_asc_file(sim_asc, path_to_folder, flow_id):
-    cropped_asc_file = path_to_folder + '/map/sim_' + flow_id + '.asc'
+    pointShp = fiona.open(shp_vent_file,
+                          mode='w',
+                         driver='ESRI Shapefile',
+                          schema=schema,
+                          crs=f'epsg:{epsg_code}')
+
+    # iterate over each row in the dataframe and save record
+    for index, row in pointDf.iterrows():
+        rowDict = {
+            'geometry': {'type': 'Point',
+                         'coordinates': (row.X, row.Y)},
+            'properties': {'flow_id': row.flow_id,
+                           }}
+        pointShp.write(rowDict)
+    # close fiona object
+    pointShp.close()
+    print(f"----------- Vent file is saved as shape file in:'{shp_vent_file}'---------------")
+
+def crop_asc_file(sim_asc, cropped_asc_file):
     with open(sim_asc) as file:
         header_lines = [next(file) for _ in range(6)]
         ncols = int(header_lines[0].split()[1])
@@ -106,6 +109,7 @@ def crop_asc_file(sim_asc, path_to_folder, flow_id):
     cropped_nrows, cropped_ncols = cropped_data.shape
     cropped_xllcorner = xllcorner + min_col * cellsize
     cropped_yllcorner = yllcorner + (nrows - max_row - 1) * cellsize
+
     header_lines = [
         f"ncols {cropped_ncols}\n",
         f"nrows {cropped_nrows}\n",
@@ -121,9 +125,7 @@ def crop_asc_file(sim_asc, path_to_folder, flow_id):
             line = " ".join(str(value) if value is not None else str(nodata_value) for value in row)
             file.write(line + "\n")
 
-def convert_to_tiff(cropped_asc_file, path_to_folder, flow_id):
-    # Convert the .asc file to a compressed GeoTIFF (.tif)
-    sim_tif_file = path_to_folder + 'map/'+'sim_' + flow_id + '.tif'
+def convert_to_tiff(cropped_asc_file, sim_tif_file):
     with rasterio.open(cropped_asc_file) as src:
         profile = src.profile.copy()
         profile["compress"] = "deflate"  # Use deflate compression
@@ -133,3 +135,61 @@ def convert_to_tiff(cropped_asc_file, path_to_folder, flow_id):
         data = src.read(1)
         with rasterio.open(sim_tif_file, "w", **profile) as dst:
             dst.write(data, 1)
+
+
+def crop_and_convert_to_tif(sim_asc, cropped_geotiff_file, epsg_code):
+    """
+    Crops an ASC file and saves it as a GeoTIFF file.
+
+    :param sim_asc: Path to the input ASC file
+    :param cropped_geotiff_file: Path to the output GeoTIFF file
+    :param epsg_code: EPSG code for the coordinate reference system
+    """
+    # Read the ASCII file
+    with open(sim_asc) as file:
+        header_lines = [next(file) for _ in range(6)]
+        ncols = int(header_lines[0].split()[1])
+        nrows = int(header_lines[1].split()[1])
+        xllcorner = float(header_lines[2].split()[1])
+        yllcorner = float(header_lines[3].split()[1])
+        cellsize = float(header_lines[4].split()[1])
+        nodata_value = float(header_lines[5].split()[1])
+
+        # Read the values from the ASC file
+        data_lines = [line.strip().split() for line in file]
+        # Convert the data lines to a NumPy array
+        data = np.array(data_lines, dtype=float)
+
+    # Determine the index of the non-zero rows and columns
+    nonzero_rows, nonzero_cols = np.nonzero(data)
+    # Calculate the limits of the crop
+    min_row, max_row = np.min(nonzero_rows), np.max(nonzero_rows)
+    min_col, max_col = np.min(nonzero_cols), np.max(nonzero_cols)
+
+    # Define the values of the cropped data
+    cropped_data = data[min_row:max_row + 1, min_col:max_col + 1]
+
+    # Update the headers of the new cropped ASC file
+    cropped_nrows, cropped_ncols = cropped_data.shape
+    cropped_xllcorner = xllcorner + min_col * cellsize
+    cropped_yllcorner = yllcorner + (nrows - max_row - 1) * cellsize
+
+    # Define the transform and metadata for the GeoTIFF
+    transform = from_origin(cropped_xllcorner, cropped_yllcorner + cropped_nrows * cellsize, cellsize, cellsize)
+    metadata = {
+        'driver': 'GTiff',
+        'count': 1,
+        'dtype': 'float32',
+        'width': cropped_ncols,
+        'height': cropped_nrows,
+        'crs': CRS.from_epsg(epsg_code),
+        'transform': transform,
+        'nodata': nodata_value
+    }
+
+
+    # Write the data to a GeoTIFF file
+    with rasterio.open(cropped_geotiff_file, 'w', **metadata) as dst:
+        dst.write(cropped_data, 1)
+
+    print(f" Cropped simulation saved in Geotiff at '{cropped_geotiff_file}'")

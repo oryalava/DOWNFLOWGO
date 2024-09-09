@@ -1,18 +1,28 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 import os
 import csv
-import downflowgo.downflowcpp as downflowcpp
-from tkinter import ttk
 import subprocess
-import downflowgo.mapping_en as mapping
 import datetime
+import time
+import json
+import downflowgo.mapping as mapping
+import downflowgo.downflowcpp as downflowcpp
+import downflowgo.txt_to_shape as txt_to_shape
 
+import pyflowgo.run_flowgo_effusion_rate_array as run_flowgo_effusion_rate_array
+import pyflowgo.run_flowgo as run_flowgo
+import pyflowgo.run_outs as run_outs
+import pyflowgo.plot_flowgo_results as plot_flowgo_results
 
 if __name__ == "__main__":
-    crs = "EPSG:32740"
+    # Start the timer
+    start_time = time.time()
+
     path_to_resources = "/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF"
     path_to_eruptions = "/Users/chevrel/GoogleDrive/Eruption_PdF"
+    path = os.path.abspath('') + "/downflowgo"
+    print('path', path)
     
     def get_folder():
         folder_path = filedialog.askdirectory()
@@ -25,6 +35,7 @@ if __name__ == "__main__":
         if file_path:
             entry_var.set(file_path)
     def get_values_and_create_csv():
+        ''' this is to create a vent_csv file from the UTM coordinate '''
         path_to_results = entry_path_to_results_var.get()
         name = entry_name_var.get()
         easting = float(entry_easting_var.get())
@@ -41,7 +52,7 @@ if __name__ == "__main__":
     # Global variable to store the loaded CSV file path
     loaded_csv_file_path = None
     def load_csv_file():
-        global loaded_csv_file_path
+        ''' this is to load the data from a vent_csv file '''
         loaded_csv_file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
         if loaded_csv_file_path:
             with open(loaded_csv_file_path, newline='') as csvfile:
@@ -53,10 +64,53 @@ if __name__ == "__main__":
                 entry_northing_var.set(row[2])
 
     def get_values():
+        ''' this is to load the values from the window to run downflow, this includes
+                 the dem, the DH, n and epsg code
+                 and the vent_csv file that is either created from the coordinate or from the loaded csv'''
         global loaded_csv_file_path
         path_to_results = entry_path_to_results_var.get()
         dem = os.path.join(os.path.abspath('DEM'), entry_dem_name_var.get())
+        DH =entry_DH_var.get()
+        n_path = entry_n_path_var.get()
+        epsg_code = entry_epsg_code.get()
         json_file = os.path.abspath(entry_json_file_var.get())
+        effusion_rates_input = entry_effusion_rates_var.get()
+
+        if effusion_rates_input:
+            # Split the input by commas
+            rates = effusion_rates_input.split(',')
+
+            if len(rates) == 1:
+                # If there is only one value, use it for all three parameters
+                try:
+                    single_value = int(rates[0])
+                    effusion_rates = {
+                        "first_eff_rate": single_value,
+                        "last_eff_rate": single_value,
+                        "step_eff_rate": single_value
+                    }
+                except ValueError:
+                    print("Invalid input. Effusion rates input should have 1 or 3 comma-separated values.")
+                    
+            elif len(rates) == 3:
+                # If there are three values, use them for the parameters
+                try:
+                    effusion_rates = {
+                        "first_eff_rate": int(rates[0]),
+                        "last_eff_rate": int(rates[1]),
+                        "step_eff_rate": int(rates[2])
+                    }
+                except ValueError:
+                    print("Invalid input. Effusion rates input should have 1 or 3 comma-separated values.")
+                    
+            else:
+                # If the number of values is incorrect
+                print("Effusion rates input should have 1 or 3 comma-separated values.")
+        else:
+            # Handle the case where no input is provided
+            print("Effusion rates input is taken from json")
+            effusion_rates = 0
+
         # Use the loaded CSV file if available, otherwise use the default csv_vent_file path
         if loaded_csv_file_path:
             with open(loaded_csv_file_path, newline='') as csvfile:
@@ -69,8 +123,12 @@ if __name__ == "__main__":
                     'path_to_results': path_to_results,
                     'csv_vent_file': loaded_csv_file_path,
                     'json_file': json_file,
-                    'dem': dem
-                }
+                    'dem': dem,
+                    'DH': DH,
+                    'n_path': n_path,
+                    'epsg_code': epsg_code,
+                    'effusion_rates': effusion_rates
+                    }
                 return values
         else:
             path_to_results = entry_path_to_results_var.get()
@@ -81,11 +139,16 @@ if __name__ == "__main__":
                 'path_to_results': path_to_results,
                 'csv_vent_file': csv_vent_file,
                 'json_file': json_file,
-                'dem': dem
+                'dem': dem,
+                'DH': DH,
+                'n_path': n_path,
+                'epsg_code': epsg_code,
+                'effusion_rates': effusion_rates
             }
             return values
 
     def open_run_window():
+        ''' this open the window with to check the selected files to run DOWNFLOW'''
         run_window = tk.Toplevel(root)
         run_window.title("Run Downflowgo")
         tk.Label(run_window, text="Check selected files:").pack()
@@ -111,17 +174,135 @@ if __name__ == "__main__":
                   foreground=[('active', 'red'), ('pressed', 'orange')],
                   background=[('active', 'orange'), ('pressed', 'red')])
 
-        volcano_button = ttk.Button(button_frame, text="RUN DOWNFLOWGO", command=lambda: run_downflowgo(values,run_window,crs),
+        volcano_button = ttk.Button(button_frame, text="RUN DOWNFLOWGO", command=lambda: run_downflowgo(values, run_window),
                                     style="Volcano.TButton")
         volcano_button.pack()
-    def run_downflowgo(values,run_window,crs):
+    def run_downflowgo(values,run_window):
+        ''' this function will run downflow from downflowcpp.py '''
         path_to_results = values['path_to_results']
         dem = values['dem']
         template_json_file = values['json_file']
         csv_vent_file = values['csv_vent_file']
-        downflowcpp.run_downflowgo(path_to_results, dem, csv_vent_file, template_json_file, crs)
-        open_create_map_window(run_window, dem)
-    def open_create_map_window(run_window,dem):
+        DH = values['DH']
+        n = values['n_path']
+        epsg_code = values['epsg_code']
+        effusion_rates = values['effusion_rates']
+
+
+        # ------------>    load the parameter file  <------------
+
+        parameter_file_downflow = path + '/DOWNFLOW/parameters_range.txt'
+
+
+        # ------------>  open the csv file with the vent coordinates
+        with open(csv_vent_file, 'r') as csvfile:
+            csvreader = csv.DictReader(csvfile, delimiter=';')
+
+            for row in csvreader:
+                flow_id = str(row['flow_id'])
+                long = str(row['X'])
+                lat = str(row['Y'])
+                name_folder = path_to_results + '/' + flow_id
+                path_to_folder = name_folder + '/'
+                os.mkdir(name_folder)
+                os.chdir(name_folder)
+
+            # Returns an asc file with new (filled) DEM
+            downflowcpp.get_downflow_filled_dem(long, lat, dem, path, parameter_file_downflow)
+            print("************************ DOWNFLOW filled DEM done *********")
+
+            # Returns the profile.txt
+            filled_dem = 'dem_filled_DH0.001_N1000.asc'
+            downflowcpp.get_downflow_losd(long, lat, filled_dem, path, parameter_file_downflow)
+            print("************************ DOWNFLOW LoSD done *********")
+            os.remove(path_to_folder + "/dem_filled_DH0.001_N1000.asc")
+
+            # Returns an asc file with the lava flow path probabilities using the given DH and n
+            downflowcpp.get_downflow_probabilities(long, lat, dem, path, parameter_file_downflow, DH, n)
+            print("******************* DOWNFLOW probability executed: sim.asc created **************************")
+
+            # create map folder with layers in it
+            map = path_to_folder + 'map'
+            os.mkdir(map)
+            sim_asc = path_to_folder + 'sim.asc'
+            cropped_geotiff_file = path_to_folder + 'map/sim_' + flow_id + '.tif'
+            txt_to_shape.crop_and_convert_to_tif(sim_asc, cropped_geotiff_file, epsg_code)
+            os.remove(sim_asc)
+            print('*********** simulation paths saved in:', cropped_geotiff_file, '*********')
+
+            losd_file = path_to_folder + "profile_00000.txt"
+            shp_losd_file = path_to_folder + 'map/losd_' + flow_id + '.shp'
+            txt_to_shape.get_path_shp(losd_file, shp_losd_file, epsg_code)
+            shp_vent_file = path_to_folder + 'map/vent_' + flow_id + '.shp'
+            txt_to_shape.get_vent_shp(csv_vent_file, shp_vent_file, epsg_code)
+            print("**************** End of DOWNFLOW ", flow_id, '*********')
+
+            print("************************ Start FLOWGO for FLOW ID =", flow_id, '*********')
+            path_to_flowgo_results = path_to_folder+'/results_flowgo/'
+            os.mkdir(path_to_flowgo_results)
+            # Run FLOWGO for json defined effusion rate
+            global run_outs
+            if effusion_rates["first_eff_rate"] == 0:
+                #it will calculate the effusion rate basedo n the channel dimensions
+                
+                json_file_new = path_to_flowgo_results + 'parameters_' + flow_id + ".json"
+                slope_file = losd_file
+                with open(template_json_file, "r") as data_file:
+                    read_json_data = json.load(data_file)
+                read_json_data["slope_file"] = slope_file
+                read_json_data["effusion_rate_init"] = 0
+                read_json_data["lava_name"] = flow_id
+                
+                with open(json_file_new, "w") as data_file:
+                    json.dump(read_json_data, data_file)
+                    
+                flowgo = run_flowgo.RunFlowgo()
+                flowgo.run(json_file_new, path_to_flowgo_results)
+                filename = flowgo.get_file_name_results(path_to_flowgo_results, json_file_new)
+                filename_array = [filename]
+                plot_flowgo_results.plot_all_results(path_to_flowgo_results, filename_array)
+                plot_flowgo_results.plt.show()
+                plot_flowgo_results.plt.close()
+                
+                with open(json_file_new, "r") as data_file:
+                    data = json.load(data_file)
+                lava_name = data["lava_name"]
+                run_outs.get_run_outs(path_to_flowgo_results, filename_array, slope_file, lava_name)
+
+                print('****** FLOWGO results are saved:', filename, '***********')
+            
+            elif effusion_rates != 0:
+                # Run FLOWGO for several effusion rates
+                first_eff_rate, last_eff_rate, step_eff_rate = effusion_rates  # Unpack the tuple
+                simulation = run_flowgo_effusion_rate_array.StartFlowgo()
+                json_file_new = path_to_flowgo_results + 'parameters_' + flow_id + ".json"
+                slope_file = losd_file
+                simulation.make_new_json(template_json_file, flow_id, slope_file, json_file_new)
+                simulation.run_flowgo_effusion_rate_array(json_file_new, path_to_flowgo_results, slope_file, effusion_rates)
+                
+            else:
+                print('define effusion rate in effusion_rate or provide an effusion rate array')
+
+            run_outs = path_to_flowgo_results + 'run_outs_' + flow_id + '.csv'
+            shp_runouts = path_to_folder + 'map/runouts_' + flow_id + '.shp'
+            txt_to_shape.get_runouts_shp(run_outs, shp_runouts, epsg_code)
+
+            print('*********** FLOWGO executed and results stored in:', path_to_flowgo_results, '***********')
+
+            sim_layers = {
+                'losd_file': losd_file,
+                'shp_losd_file': shp_losd_file,
+                'shp_vent_file': shp_vent_file,
+                'cropped_geotiff_file': cropped_geotiff_file,
+                'shp_runouts': shp_runouts
+            }
+            print("************************************** THE END *************************************")
+        open_create_map_window(run_window, dem, sim_layers)
+
+    def open_create_map_window(run_window, dem, sim_layers):
+
+        ''' this opens the windows to load all the layers to create the map'''
+
         map_window = tk.Toplevel(root)
         map_window.title("Create Map")
         map_window_width = 900  # Définir la largeur souhaitée
@@ -129,49 +310,73 @@ if __name__ == "__main__":
         map_window.geometry(f"{map_window_width}x{map_window_height}")
         values = get_values()
 
-        #  Make button to browse layers for the map
-        ## TODO:  change path to prefered Background
-        file1_var = tk.StringVar(value=path_to_resources+"/mapping_data/layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
-        file2_var = tk.StringVar(value=path_to_resources+"/mapping_data/layers/stations_OVPF/All_Stations_Ovpf_update_2022.shp")
-        file3_var = tk.StringVar(value="0")
-        ##TODO: change path to prefered logos
-        file4_var = tk.StringVar(value=path_to_resources+"/mapping_data/map/accessoires/all_logo.png")
+        # Initialize StringVars for the layers
+        ## TODO:  change default path to prefered path
+        img_tif_var = tk.StringVar(
+            value=path_to_resources + "/mapping_data/layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
+        monitoring_network_var = tk.StringVar(value=path_to_resources + "/mapping_data/layers/stations_OVPF/All_Stations_Ovpf_update_2022.shp")
+        lava_flow_outline_var = tk.StringVar(value="0")
+        logo_var = tk.StringVar(value=path_to_resources + "/mapping_data/map/accessoires/all_logo.png")
 
-        file1_frame = tk.Frame(map_window)
-        file1_frame.pack(anchor=tk.W)
-        label_file1 = tk.Label(file1_frame, text="Background Map (.tif):")
-        label_file1.pack(side=tk.LEFT)
-        entry_file1 = tk.Entry(file1_frame, textvariable=file1_var, width=60)
-        entry_file1.pack(side=tk.LEFT)
-        button_browse1 = tk.Button(file1_frame, text="Browse", command=lambda: get_file_name(file1_var))
-        button_browse1.pack(side=tk.LEFT)
+        # Define the map_layers dictionary initially
+        map_layers = {
+            'img_tif_path': img_tif_var.get(),
+            'monitoring_network_path': monitoring_network_var.get(),
+            'lava_flow_outline_path': lava_flow_outline_var.get(),
+            'logo_path': logo_var.get()
+        }
 
-        file2_frame = tk.Frame(map_window)
-        file2_frame.pack(anchor=tk.W)
-        label_file2 = tk.Label(file2_frame, text="Monitoring Network (.shp): (0 if not)")
-        label_file2.pack(side=tk.LEFT)
-        entry_file2 = tk.Entry(file2_frame, textvariable=file2_var, width=60)
-        entry_file2.pack(side=tk.LEFT)
-        button_browse2 = tk.Button(file2_frame, text="Browse", command=lambda: get_file_name(file2_var))
-        button_browse2.pack(side=tk.LEFT)
+        # Frame for Background Map (.tif)
+        img_tif_frame = tk.Frame(map_window)
+        img_tif_frame.pack(anchor=tk.W)
+        label_img_tif = tk.Label(img_tif_frame, text="Background Map (.tif):")
+        label_img_tif.pack(side=tk.LEFT)
+        entry_img_tif = tk.Entry(img_tif_frame, textvariable=img_tif_var, width=60)
+        entry_img_tif.pack(side=tk.LEFT)
+        button_browse_img_tif = tk.Button(img_tif_frame, text="Browse",
+                                          command=lambda: [img_tif_var.set(filedialog.askopenfilename()),
+                                                           map_layers.update({'img_tif_path': img_tif_var.get()})])
+        button_browse_img_tif.pack(side=tk.LEFT)
 
-        file3_frame = tk.Frame(map_window)
-        file3_frame.pack(anchor=tk.W)
-        label_file3 = tk.Label(file3_frame, text="LavaFlow outline (.shp): (0 if not)")
-        label_file3.pack(side=tk.LEFT)
-        entry_file3 = tk.Entry(file3_frame, textvariable=file3_var, width=60)
-        entry_file3.pack(side=tk.LEFT)
-        button_browse3 = tk.Button(file3_frame, text="Browse", command=lambda: get_file_name(file3_var))
-        button_browse3.pack(side=tk.LEFT)
+        # Frame for monitoring_network (.shape)
+        monitoring_network_frame = tk.Frame(map_window)
+        monitoring_network_frame.pack(anchor=tk.W)
+        label_monitoring_network = tk.Label(monitoring_network_frame, text="Monitoring Network (.shp): (0 if not)")
+        label_monitoring_network.pack(side=tk.LEFT)
+        entry_monitoring_network = tk.Entry(monitoring_network_frame, textvariable=monitoring_network_var, width=60)
+        entry_monitoring_network.pack(side=tk.LEFT)
+        button_browse_monitoring_network = tk.Button(monitoring_network_frame, text="Browse",
+                                                     command=lambda: [
+                                                         monitoring_network_var.set(filedialog.askopenfilename()),
+                                                         map_layers.update({
+                                                                               'monitoring_network_path': monitoring_network_var.get()})])
+        button_browse_monitoring_network.pack(side=tk.LEFT)
 
-        file4_frame = tk.Frame(map_window)
-        file4_frame.pack(anchor=tk.W)
-        label_file4 = tk.Label(file4_frame, text="Logo(s) (.png): (0 if not)")
-        label_file4.pack(side=tk.LEFT)
-        entry_file4 = tk.Entry(file4_frame, textvariable=file4_var, width=60)
-        entry_file4.pack(side=tk.LEFT)
-        button_browse4 = tk.Button(file4_frame, text="Browse", command=lambda: get_file_name(file4_var))
-        button_browse4.pack(side=tk.LEFT)
+        # Frame for lava_flow_outline (.shape)
+        lava_flow_outline_frame = tk.Frame(map_window)
+        lava_flow_outline_frame.pack(anchor=tk.W)
+        label_lava_flow_outline = tk.Label(lava_flow_outline_frame, text="LavaFlow outline (.shp): (0 if not)")
+        label_lava_flow_outline.pack(side=tk.LEFT)
+        entry_lava_flow_outline = tk.Entry(lava_flow_outline_frame, textvariable=lava_flow_outline_var, width=60)
+        entry_lava_flow_outline.pack(side=tk.LEFT)
+        button_browse_lava_flow_outline = tk.Button(lava_flow_outline_frame, text="Browse",
+                                                    command=lambda: [
+                                                        lava_flow_outline_var.set(filedialog.askopenfilename()),
+                                                        map_layers.update(
+                                                            {'lava_flow_outline_path': lava_flow_outline_var.get()})])
+        button_browse_lava_flow_outline.pack(side=tk.LEFT)
+
+        # Frame for lava_flow_outline (.png)
+        logo_frame = tk.Frame(map_window)
+        logo_frame.pack(anchor=tk.W)
+        label_logo = tk.Label(logo_frame, text="Logo(s) (.png): (0 if not)")
+        label_logo.pack(side=tk.LEFT)
+        entry_logo = tk.Entry(logo_frame, textvariable=logo_var, width=60)
+        entry_logo.pack(side=tk.LEFT)
+        button_browse_logo = tk.Button(logo_frame, text="Browse",
+                                       command=lambda: [logo_var.set(filedialog.askopenfilename()),
+                                                        map_layers.update({'logo_path': logo_var.get()})])
+        button_browse_logo.pack(side=tk.LEFT)
 
         # Button to create Map
         button_frame = tk.Frame(map_window)
@@ -182,40 +387,36 @@ if __name__ == "__main__":
                   foreground=[('active', 'red'), ('pressed', 'orange')],
                   background=[('active', 'orange'), ('pressed', 'red')])
 
+        map_layers = {
+            'img_tif_path': img_tif_var.get(),
+            'monitoring_network_path': monitoring_network_var.get(),
+            'lava_flow_outline_path': lava_flow_outline_var.get(),
+            'logo_path': logo_var.get()
+        }
         volcano_button = ttk.Button(button_frame, text="CREATE MAP",
-                                    command=lambda: process_and_create_mapping(values, file1_var.get(), file2_var.get(),
-                                                                               file3_var.get(),file4_var.get(),
-                                                                               map_window, run_window, dem),
+                                    command=lambda: process_and_create_mapping(values, map_layers, map_window, run_window, dem, sim_layers),
                                     style="Volcano.TButton")
         volcano_button.pack(side=tk.LEFT)
 
         no_button = ttk.Button(button_frame, text="NO", command=lambda: close_all_windows(map_window, run_window, root))
         no_button.pack(side=tk.LEFT)
 
-    def process_and_create_mapping(values, file1_path, file2_path, file3_path, file4_path, map_window, run_window, dem):
-        map_layers = process_files(file1_path, file2_path, file3_path, file4_path)
+    def process_and_create_mapping(values, map_layers, map_window, run_window, dem, sim_layers):
+
         if loaded_csv_file_path:
             with open(loaded_csv_file_path, 'r') as csvfile:
                 csvreader = csv.DictReader(csvfile, delimiter=';')
                 for row in csvreader:
                     flow_id = str(row['flow_id'])
                     path_to_results = entry_path_to_results_var.get() + '/' + flow_id
-                    mapping.create_map_downflowgo(path_to_results, dem, flow_id, map_layers)
+                    mapping.create_map(path_to_results, dem, flow_id, map_layers, sim_layers, mode='downflowgo')
                     print(path_to_results, flow_id)
             close_all_windows(map_window, run_window, root)
         else:
             path_to_results = values['path_to_results'] +"/"+values['name']
             flow_id = values['name']
-            mapping.create_map_downflowgo(path_to_results, dem, flow_id, map_layers)
+            mapping.create_map(path_to_results, dem, flow_id, map_layers, sim_layers, mode='downflowgo')
             close_all_windows(map_window, run_window, root)
-    def process_files(file1_path, file2_path,file3_path,file4_path):
-        map_layers = {
-            'tiff_file': file1_path,
-            'monitoring_network_path': file2_path,
-            'lava_flow_outline_path': file3_path,
-            'logo': file4_path
-        }
-        return map_layers
 
     def close_all_windows(*windows):
         for window in windows:
@@ -229,7 +430,7 @@ if __name__ == "__main__":
 
     # Adjust size window
     window_width = 1000  # Définir la largeur souhaitée
-    window_height = 200  # Définir la hauteur souhaitée
+    window_height = 250  # Définir la hauteur souhaitée
     root.geometry(f"{window_width}x{window_height}")
 
 
@@ -287,6 +488,28 @@ if __name__ == "__main__":
     button_browse = tk.Button(dem_frame, text="Browse", command=lambda: get_file_name(entry_dem_name_var))
     button_browse.pack(side=tk.LEFT)
 
+    # Define N and DH and EPSG
+    N_DH_EPSG_frame = tk.Frame(root)
+    N_DH_EPSG_frame.pack(anchor=tk.W)
+    # DH
+    label_DH = tk.Label(N_DH_EPSG_frame, text="DH:")
+    label_DH.pack(side=tk.LEFT)
+    entry_DH_var = tk.StringVar(value="2")
+    entry_DH = tk.Entry(N_DH_EPSG_frame, textvariable=entry_DH_var, width=4)
+    entry_DH.pack(side=tk.LEFT)
+    #  N
+    label_n_path = tk.Label(N_DH_EPSG_frame, text="N:")
+    label_n_path.pack(side=tk.LEFT)
+    entry_n_path_var = tk.StringVar(value="10000")
+    entry_n_path = tk.Entry(N_DH_EPSG_frame, textvariable=entry_n_path_var, width=8)
+    entry_n_path.pack(side=tk.LEFT)
+    #  EPSG
+    label_epsg_code = tk.Label(N_DH_EPSG_frame, text="EPSG:")
+    label_epsg_code.pack(side=tk.LEFT)
+    entry_epsg_code_var = tk.StringVar(value="32740")
+    entry_epsg_code = tk.Entry(N_DH_EPSG_frame, textvariable=entry_epsg_code_var, width=8)
+    entry_epsg_code.pack(side=tk.LEFT)
+
     # JSON File
     json_frame = tk.Frame(root)
     json_frame.pack(anchor=tk.W)
@@ -300,6 +523,15 @@ if __name__ == "__main__":
     button_browse.pack(side=tk.LEFT)
     edit_button = tk.Button(json_frame, text="Edit Json", command=open_editor)
     edit_button.pack(side=tk.LEFT)
+    
+    #  Effusion rates
+    effusion_rates_frame = tk.Frame(root)
+    effusion_rates_frame.pack(anchor=tk.W)
+    label_effusion_rates = tk.Label(effusion_rates_frame, text="Effusion rate or effusion rate range (first, last, step):")
+    label_effusion_rates.pack(side=tk.LEFT)
+    entry_effusion_rates_var = tk.StringVar(value="5,65,5")
+    entry_effusion_rates = tk.Entry(effusion_rates_frame, textvariable=entry_effusion_rates_var, width=10)
+    entry_effusion_rates.pack(side=tk.LEFT)
 
     # Button to open Downflowgo window
     style = ttk.Style()
@@ -308,11 +540,23 @@ if __name__ == "__main__":
               foreground=[('active', 'red'), ('pressed', 'orange')],
               background=[('active', 'orange'), ('pressed', 'red')])
 
-    volcano_button = ttk.Button(root, text="DOWNFLOWGO", command=lambda:open_run_window(),style="Volcano.TButton")
+    volcano_button = ttk.Button(root, text="DOWNFLOWGO", command=lambda:open_run_window(), style="Volcano.TButton")
     volcano_button.pack()
 
     # Start main loop
     root.mainloop()
 
+    # End the timer
+    end_time = time.time()
 
+    # Calculate the duration
+    execution_time = end_time - start_time
+
+    # Format the execution time
+    if execution_time >= 60:
+        minutes = int(execution_time // 60)
+        seconds = int(execution_time % 60)
+        print(f"The code took {minutes} minutes and {seconds} seconds to execute.")
+    else:
+        print(f"The code took {int(execution_time)} seconds to execute.")
 
