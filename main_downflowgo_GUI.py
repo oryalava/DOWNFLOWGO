@@ -241,7 +241,6 @@ if __name__ == "__main__":
             path_to_flowgo_results = path_to_folder+'/results_flowgo/'
             os.mkdir(path_to_flowgo_results)
             # Run FLOWGO for json defined effusion rate
-            global run_outs
             if effusion_rates["first_eff_rate"] == 0:
                 #it will calculate the effusion rate basedo n the channel dimensions
                 
@@ -283,9 +282,9 @@ if __name__ == "__main__":
             else:
                 print('define effusion rate in effusion_rate or provide an effusion rate array')
 
-            run_outs = path_to_flowgo_results + 'run_outs_' + flow_id + '.csv'
+            run_outs_file = path_to_flowgo_results + 'run_outs_' + flow_id + '.csv'
             shp_runouts = path_to_folder + 'map/runouts_' + flow_id + '.shp'
-            txt_to_shape.get_runouts_shp(run_outs, shp_runouts, epsg_code)
+            txt_to_shape.get_runouts_shp(run_outs_file, shp_runouts, epsg_code)
 
             print('*********** FLOWGO executed and results stored in:', path_to_flowgo_results, '***********')
 
