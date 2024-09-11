@@ -296,9 +296,13 @@ if __name__ == "__main__":
                 'shp_runouts': shp_runouts
             }
             print("************************************** THE END *************************************")
-        open_create_map_window(run_window, dem, sim_layers)
+        # Close the run_window after running Downflowgo
+        run_window.destroy()
+        root.withdraw()
+        open_create_map_window(root, dem, sim_layers)
 
-    def open_create_map_window(run_window, dem, sim_layers):
+
+    def open_create_map_window(root, dem, sim_layers):
 
         ''' this opens the windows to load all the layers to create the map'''
 
@@ -312,10 +316,10 @@ if __name__ == "__main__":
         # Initialize StringVars for the layers
         ## TODO:  change default path to prefered path
         img_tif_var = tk.StringVar(
-            value=path_to_resources + "/mapping_data/layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
-        monitoring_network_var = tk.StringVar(value=path_to_resources + "/mapping_data/layers/stations_OVPF/All_Stations_Ovpf_update_2022.shp")
+            value=path_to_resources + "/mapping_data/map_layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
+        monitoring_network_var = tk.StringVar(value=path_to_resources + "/mapping_data/map_layers/stations_OVPF/All_Stations_Ovpf_update_2022.shp")
         lava_flow_outline_var = tk.StringVar(value="0")
-        logo_var = tk.StringVar(value=path_to_resources + "/mapping_data/map/accessoires/all_logo.png")
+        logo_var = tk.StringVar(value=path_to_resources + "/mapping_data/map_layers/accessoires/all_logo.png")
 
         # Define the map_layers dictionary initially
         map_layers = {
@@ -393,11 +397,11 @@ if __name__ == "__main__":
             'logo_path': logo_var.get()
         }
         volcano_button = ttk.Button(button_frame, text="CREATE MAP",
-                                    command=lambda: process_and_create_mapping(values, map_layers, map_window, run_window, dem, sim_layers),
+                                    command=lambda: process_and_create_mapping(values, map_layers, map_window, root, dem, sim_layers),
                                     style="Volcano.TButton")
         volcano_button.pack(side=tk.LEFT)
 
-        no_button = ttk.Button(button_frame, text="NO", command=lambda: close_all_windows(map_window, run_window, root))
+        no_button = ttk.Button(button_frame, text="NO", command=lambda: close_all_windows(map_window, root))
         no_button.pack(side=tk.LEFT)
 
     def process_and_create_mapping(values, map_layers, map_window, run_window, dem, sim_layers):
@@ -410,12 +414,12 @@ if __name__ == "__main__":
                     path_to_results = entry_path_to_results_var.get() + '/' + flow_id
                     mapping.create_map(path_to_results, dem, flow_id, map_layers, sim_layers, mode='downflowgo')
                     print(path_to_results, flow_id)
-            close_all_windows(map_window, run_window, root)
+            close_all_windows(map_window, root)
         else:
             path_to_results = values['path_to_results'] +"/"+values['name']
             flow_id = values['name']
             mapping.create_map(path_to_results, dem, flow_id, map_layers, sim_layers, mode='downflowgo')
-            close_all_windows(map_window, run_window, root)
+            close_all_windows(map_window, root)
 
     def close_all_windows(*windows):
         for window in windows:
