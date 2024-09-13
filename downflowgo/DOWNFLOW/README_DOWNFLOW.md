@@ -61,7 +61,7 @@ Now you should have the ```DOWNFLOW.exe``` executable file.
 
 ### 2) Run DOWNFLOW
 
-Requiered file:
+Requiered files:
 
 1) The DEM must be  ```.asc ``` format with UTM in WGS84, with the following header :
 ```
@@ -74,14 +74,13 @@ NODATA_value  0
  ```
 NODATA_value can be 0 or what ever value (like -99999) but avoid « nan » or any letters.
 
-2) The parameters_range_template.txt must contain the right path to the DEM.
+2) The parameters_range_template.txt must contain the right path to the DEM and the vent coordinates (Xorigine, Yorigine) 
 
 
-
-
-To run DOWNFLOW simply write in your terminal :
+To run DOWNFLOW open your terminal, go to DOWNFLOW Folder
+and execute:
  ```
-cd DOWNFLOWGO-main\downflowgo\DOWNFLOW\DOWNFLOW parameters_range_template.txt
+./DOWNFLOW parameters_range.txt
  ```
 
 you can also use the python function:

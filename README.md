@@ -38,6 +38,8 @@ This folder includes :
 1) a folder **DOWNFLOW** containing the code in c++ of DOWNFLOW [Favalli et al. 2005](https://doi.org/10.1029/2004gl021718) 
 provided by Massimiliano Favalli (hopefully soon available on github).
 
+To install **DOWNFLOW** follow the instruction in the **README_DOWNFLOW** 
+
 
 2) the following scripts :
 

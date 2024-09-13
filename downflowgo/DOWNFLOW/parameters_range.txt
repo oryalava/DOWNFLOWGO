@@ -1,8 +1,8 @@
-input_DEM /Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF/DEM/DEM-20240411-net-5m.asc
-Xorigine 369082.7
-Yorigine 7647204.29
-n_path 10000
-DH 2
+input_DEM dem_filled_DH0.001_N1000.asc
+Xorigine 369270.5
+Yorigine 7647391.5
+n_path 1
+DH 0.001
 MaxPathLength 100000000
 n_iter_per_path 800000000
 static_Depos. 0.01
@@ -14,6 +14,6 @@ output_L_grid_name sim.asc
 #New_h_grid_name  dem_filled_DH0.001_N1000.asc
 #output_N_grid_name     N.asc           # can be activated only together with   output_Lf_grid_name
 #output_Lf_grid_name    Lf.asc          # can be activated only together with   output_N_grid_name
-#write_profile 
+write_profile 10
 
 

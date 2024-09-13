@@ -1,6 +1,7 @@
 #import requires packages
 import fiona
 import pandas as pd
+import csv
 import rasterio
 import numpy as np
 from rasterio.transform import from_origin
@@ -31,16 +32,16 @@ def get_path_shp(losd_file, shp_losd_file, epsg_code):
     print(f"++++++++++++++++++ Losd file is saved in shape format at: '{shp_losd_file}'+++++++++++++++++")
 
 
-def get_runouts_shp(run_outs, shp_runouts, epsg_code):
+def get_runouts_shp(run_outs_file, shp_runouts, epsg_code):
 
     # import points from slope file
-    pointDf = pd.read_csv(run_outs, header=0, sep=',')
+    pointDf = pd.read_csv(run_outs_file, header=0, sep=',')
     pointDf.head()
     # define schema for line shape file
-    schema = {'geometry': 'Point', 'properties': [("flow_id", 'str'), ("Effusion_rate", 'int'),
-                                                  ("Depth", 'float'),("Width_init", 'float'),
-                                                  ("Elevation_run_out", 'int'), ("Distance_run_out", 'int')
-                                                   ]}
+    schema = {'geometry': 'Point', 'properties': [("flow_id", 'str'), ("Effusion_rate", 'int'), ("X_run_out", 'float'),
+                                                  ("Y_run_out", 'float'), ("Channel_Depth", 'float'), 
+                                                  ("Channel_Width_init", 'float'), ("Elevation_run_out", 'int'), 
+                                                  ("Distance_run_out", 'int') ]}
     # open a fiona object
     pointShp = fiona.open(shp_runouts, mode='w',
                          driver='ESRI Shapefile', schema=schema, crs=f'epsg:{epsg_code}')
@@ -50,9 +51,9 @@ def get_runouts_shp(run_outs, shp_runouts, epsg_code):
         rowDict = {
             'geometry': {'type': 'Point',
                          'coordinates': (row.X_run_out, row.Y_run_out)},
-            'properties': {'flow_id': row.flow_id, 'Effusion_rate': row.Effusion_rate,
-                           'Depth': row.Depth, 'Width_init': row.Width_init,
-                           'Elevation_run_out': row.Elevation_run_out, 'Distance_run_out': row.Distance_run_out,
+            'properties': {'flow_id': row.flow_id, 'Effusion_rate': row.Effusion_rate, 'X_run_out': row.X_run_out,
+                           'Y_run_out': row.Y_run_out, 'Channel_Depth': row.Depth, 'Channel_Width_init': row.Width_init,
+                           'Elevation_run_out': row.Elevation_run_out, 'Distance_run_out': row.Distance_run_out
                            }}
         pointShp.write(rowDict)
     # close fiona object
@@ -61,10 +62,21 @@ def get_runouts_shp(run_outs, shp_runouts, epsg_code):
 
 def get_vent_shp(csv_vent_file, shp_vent_file, epsg_code):
     # import points from slope file
-    pointDf = pd.read_csv(csv_vent_file, header=0, sep=';')
+    with open(csv_vent_file,'r') as file:
+        try:
+            dialect = csv.Sniffer().sniff(file.read(1024))
+            file.seek(0)  # Reset file pointer after sniffing
+        except csv.Error:
+            print("Could not determine delimiter.")
+            return
+    if dialect.delimiter == ';':
+        pointDf = pd.read_csv(csv_vent_file, header=0, sep=';')
+    elif dialect.delimiter == ',':
+        pointDf = pd.read_csv(csv_vent_file, header=0, sep=',')
+
     pointDf.head()
     # define schema for line shape file
-    schema = {'geometry': 'Point', 'properties': [("flow_id", 'str'),]}
+    schema = {'geometry': 'Point', 'properties': [("flow_id", 'str')]}
     # open a fiona object
 
     pointShp = fiona.open(shp_vent_file,
@@ -74,11 +86,26 @@ def get_vent_shp(csv_vent_file, shp_vent_file, epsg_code):
                           crs=f'epsg:{epsg_code}')
 
     # iterate over each row in the dataframe and save record
+    first_coordinates = None
     for index, row in pointDf.iterrows():
+        # Check if 'X_init' and 'Y_init' exist in the row
+        if 'X_init' in row and 'Y_init' in row:
+            coordinates = (row.X_init, row.Y_init)
+        else:
+            coordinates = (row.X, row.Y)
+
+        # If it's the first iteration, save the coordinates
+        if first_coordinates is None:
+            first_coordinates = coordinates
+
+        # Skip the row if it has the same coordinates as the first one
+        if coordinates == first_coordinates and index > 0:
+            continue  # Skip writing the duplicate points
+
         rowDict = {
             'geometry': {'type': 'Point',
-                         'coordinates': (row.X, row.Y)},
-            'properties': {'flow_id': row.flow_id,
+                         'coordinates': coordinates},
+            'properties': {'flow_id': row.flow_id
                            }}
         pointShp.write(rowDict)
     # close fiona object

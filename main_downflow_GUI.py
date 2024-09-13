@@ -219,10 +219,10 @@ if __name__ == "__main__":
 
         # Initialize StringVars for the layers
         ## TODO:  change default path to prefered path
-        img_tif_var = tk.StringVar(value=path_to_resources+"/mapping_data/layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
-        monitoring_network_var = tk.StringVar(value=path_to_resources + "/mapping_data/layers/stations_OVPF/All_Stations_Ovpf_update_2022.shp")
+        img_tif_var = tk.StringVar(value=path_to_resources+"/mapping_data/map_layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
+        monitoring_network_var = tk.StringVar(value=path_to_resources + "/mapping_data/map_layers/stations_OVPF/All_Stations_Ovpf_update_2022.shp")
         lava_flow_outline_var = tk.StringVar(value="0")
-        logo_var = tk.StringVar(value=path_to_resources+"/mapping_data/map/accessoires/all_logo.png")
+        logo_var = tk.StringVar(value=path_to_resources+"/mapping_data/map_layers/accessoires/all_logo.png")
 
         # Define the map_layers dictionary initially
         map_layers = {

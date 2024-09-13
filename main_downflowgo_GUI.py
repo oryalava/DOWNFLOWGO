@@ -177,8 +177,11 @@ if __name__ == "__main__":
         volcano_button = ttk.Button(button_frame, text="RUN DOWNFLOWGO", command=lambda: run_downflowgo(values, run_window),
                                     style="Volcano.TButton")
         volcano_button.pack()
-    def run_downflowgo(values,run_window):
-        ''' this function will run downflow from downflowcpp.py '''
+
+    def run_downflowgo(values, run_window):
+
+        ''' this function will run downflow from downflowcpp.py and then FLOWGO  from pyflowgo package'''
+
         path_to_results = values['path_to_results']
         dem = values['dem']
         template_json_file = values['json_file']
@@ -233,16 +236,22 @@ if __name__ == "__main__":
             losd_file = path_to_folder + "profile_00000.txt"
             shp_losd_file = path_to_folder + 'map/losd_' + flow_id + '.shp'
             txt_to_shape.get_path_shp(losd_file, shp_losd_file, epsg_code)
+
             shp_vent_file = path_to_folder + 'map/vent_' + flow_id + '.shp'
             txt_to_shape.get_vent_shp(csv_vent_file, shp_vent_file, epsg_code)
+
             print("**************** End of DOWNFLOW ", flow_id, '*********')
 
             print("************************ Start FLOWGO for FLOW ID =", flow_id, '*********')
-            path_to_flowgo_results = path_to_folder+'/results_flowgo/'
-            os.mkdir(path_to_flowgo_results)
+            path_to_flowgo_results = path_to_folder+'results_flowgo/'
+            try:
+                os.mkdir(path_to_flowgo_results)
+            except FileExistsError:
+                pass
+
             # Run FLOWGO for json defined effusion rate
             if effusion_rates["first_eff_rate"] == 0:
-                #it will calculate the effusion rate basedo n the channel dimensions
+                # when effusion rate = 0,  flowgo calculates the effusion rate base on the channel dimensions
                 
                 json_file_new = path_to_flowgo_results + 'parameters_' + flow_id + ".json"
                 slope_file = losd_file
@@ -260,8 +269,8 @@ if __name__ == "__main__":
                 filename = flowgo.get_file_name_results(path_to_flowgo_results, json_file_new)
                 filename_array = [filename]
                 plot_flowgo_results.plot_all_results(path_to_flowgo_results, filename_array)
-                plot_flowgo_results.plt.show()
-                plot_flowgo_results.plt.close()
+                #plot_flowgo_results.plt.show()
+                #plot_flowgo_results.plt.close()
                 
                 with open(json_file_new, "r") as data_file:
                     data = json.load(data_file)
