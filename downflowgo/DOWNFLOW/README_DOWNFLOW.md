@@ -27,6 +27,8 @@ provided by Massimiliano Favalli (hopefully soon officially available on github)
 
 -> parameters_range_template.txt that contains the input parameters needed for DOWNFLOW.
 
+-> a DEM of Piton de la Fournaise for testing
+
 ## Actions:
 
 ### 1) Compile DOWNFLOW.cpp on your system
@@ -69,18 +71,18 @@ ncols        3193
 nrows        2305
 xllcorner    361622.6
 yllcorner    7644294.2
-cellsize     5.00
+cellsize     25.00
 NODATA_value  0
  ```
 NODATA_value can be 0 or what ever value (like -99999) but avoid « nan » or any letters.
+A DEM of Piton de la Fournaise at 25 m (SRTM) is provided for testing.
 
 2) The parameters_range_template.txt must contain the right path to the DEM and the vent coordinates (Xorigine, Yorigine) 
 
 
-To run DOWNFLOW open your terminal, go to DOWNFLOW Folder
-and execute:
+To run DOWNFLOW open your terminal and go to DOWNFLOW Folder and execute:
  ```
-./DOWNFLOW parameters_range.txt
+./DOWNFLOW parameters_range_template.txt
  ```
 
 you can also use the python function:

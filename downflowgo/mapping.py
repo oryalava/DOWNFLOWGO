@@ -12,9 +12,9 @@ import os
 import datetime
 
 
-def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode):
+def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, language):
     """
-    Create a map for either 'downflow' or 'downflowgo' based on the mode provided.
+    Create a map for either 'downflow' or 'downflowgo' based on the mode provided and in English or in French
 
     Parameters:
     - path_to_folder: Folder to save the generated map.
@@ -31,15 +31,14 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode):
     losd_path = sim_layers['shp_losd_file']
     vent_path = sim_layers['shp_vent_file']
     sim_tif_file = sim_layers['cropped_geotiff_file']
-    tiff_file = map_layers['img_tif_path']
+    tiff_file = map_layers['img_tif_map_background']
     lavaflow_outline_path = map_layers['lava_flow_outline_path']
-    monitoring_network_path = map_layers.get('monitoring_network_path')  # Récupérer le chemin d'accès aux monitoring network
+    monitoring_network_path = map_layers['monitoring_network_path']
     logo = map_layers['logo_path']
 
     run_outs_path = None
     if mode == 'downflowgo':
         run_outs_path = sim_layers['shp_runouts']
-
 
     # Create the map figure
     fig, ax = plt.subplots(figsize=(8, 7))
@@ -52,7 +51,7 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode):
         extent = src.bounds
 
     # Display the TIFF image as the background
-    ax.imshow(tiff_image_rgb, extent=(extent.left, extent.right, extent.bottom, extent.top))
+    tif = ax.imshow(tiff_image_rgb, extent=(extent.left, extent.right, extent.bottom, extent.top))
 
     # ------------ plot simulation .tiff ----------
 
@@ -91,118 +90,101 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode):
 
     # ------------ Plot lava flow outline and monitoring network ----------
 
-    if lavaflow_outline_path == str(0):
-        pass
+    if not lavaflow_outline_path or lavaflow_outline_path == "0":
+        pass  # pass if no value or "0"
     else:
-        lavaflow_outline = fiona.open(lavaflow_outline_path)
-
-        for feature in lavaflow_outline:
-            geometry = shape(feature['geometry'])
-            if geometry.geom_type == 'Polygon':
-                coordinates = geometry.exterior.coords.xy
-                x = coordinates[0]
-                y = coordinates[1]
-                polygon_coords = list(zip(x, y))
-                polygon = Polygon(polygon_coords, edgecolor='black', facecolor='none')
-                ax.add_patch(polygon)
-
-    if monitoring_network_path == str(0):
-        pass
-    else:
-        monitoring_network = fiona.open(monitoring_network_path)
+        with fiona.open(lavaflow_outline_path) as lavaflow_outline:
+            for feature in lavaflow_outline:
+                if feature.get('geometry') is not None:
+                    geometry = shape(feature['geometry'])
+                    if geometry.geom_type == 'Polygon':
+                        coordinates = geometry.exterior.coords.xy
+                        x = coordinates[0]
+                        y = coordinates[1]
+                        polygon_coords = list(zip(x, y))
+                        polygon = Polygon(polygon_coords, edgecolor='black', facecolor='none')
+                        ax.add_patch(polygon)
+                else:
+                    print("Lavaflow_outline does not have a valid geometry")
 
     # Plot monitoring network vector layer
-        label_monitoring_network = []
-        point_monitoring_network = []
-        for feature in monitoring_network:
-            geometry = shape(feature['geometry'])
-            properties = feature['properties']
-            if geometry.geom_type == 'Point':
-                x, y = geometry.x, geometry.y
-                point_monitoring_network.append((x, y))
-                label_monitoring_network.append(properties['Name'])
-                ax.plot(x, y, 'k.')
-        # Create a dictionary to keep only the smallest label (lexicographically) for each unique point
-        unique_monitoring_network = {}
-        for (x, y), label in zip(point_monitoring_network, label_monitoring_network):
-            if (x, y) not in unique_monitoring_network or label < unique_monitoring_network[(x, y)]:
-                unique_monitoring_network[(x, y)] = label
+    if not monitoring_network_path or monitoring_network_path == "0":
+        pass  # pass if no value or "0"
+    else:
+        with fiona.open(monitoring_network_path) as monitoring_network:
+            label_monitoring_network = []
+            point_monitoring_network = []
+            for feature in monitoring_network:
+                geometry = shape(feature['geometry'])
+                properties = feature['properties']
+                if geometry.geom_type == 'Point':
+                    x, y = geometry.x, geometry.y
+                    point_monitoring_network.append((x, y))
+                    label_monitoring_network.append(properties['Name'])
+                    ax.plot(x, y, 'k.')
+                else:
+                    print("Monitoring_network does not have a valid geometry")
+            # Create a dictionary to keep only the smallest label (lexicographically) for each unique point
+            unique_monitoring_network = {}
+            for (x, y), label in zip(point_monitoring_network, label_monitoring_network):
+                if label is None:
+                    continue  # Skip stations with no name
+                if (x, y) not in unique_monitoring_network or label < unique_monitoring_network[(x, y)]:
+                    unique_monitoring_network[(x, y)] = label
 
-        # Displaying the monitoring_network names just above the points
-        for (x, y), label in unique_monitoring_network.items():
-            ax.annotate(
-                label, (x, y),
-                xytext=(0, 3),  # Offset of 5 units above the point
-                textcoords='offset points',
-                color='black', fontsize=8,
-                ha='center'  # Center the text horizontally
-            )
+            # Displaying the monitoring_network names just above the points
+            for (x, y), label in unique_monitoring_network.items():
+                ax.annotate(
+                    label, (x, y),
+                    xytext=(0, 3),  # Offset of 5 units above the point
+                    textcoords='offset points',
+                    color='black', fontsize=8,
+                    ha='center'  # Center the text horizontally
+                )
     # ------------ Plot vector layers simulation path + vent + run out ----------
 
-    # Load vector layers
-    losd = fiona.open(losd_path)
-    vent = fiona.open(vent_path)
-
-
     # Plot the LOSD vector layer
-    for feature in losd:
-        geometry = shape(feature['geometry'])
-        if geometry.geom_type == 'LineString':
-            x, y = geometry.xy
-            ax.plot(x, y, 'darkred')
+    with fiona.open(losd_path) as losd:
+        for feature in losd:
+            geometry = shape(feature['geometry'])
+            if geometry.geom_type == 'LineString':
+                x, y = zip(*geometry.coords)
+                ax.plot(x, y, 'darkred')
 
     # Plot the vent vector layer
-    for feature in vent:
-        geometry = shape(feature['geometry'])
-        if geometry.geom_type == 'Point':
-            x, y = geometry.x, geometry.y
-            ax.plot(x, y, 'r^', markersize=10)
+    with fiona.open(vent_path) as vent:
+        for feature in vent:
+            geometry = shape(feature['geometry'])
+            if geometry.geom_type == 'Point':
+                x, y = geometry.x, geometry.y
+                ax.plot(x, y, 'r^', markersize=10)
 
     # Plot additional runout layers for 'downflowgo'
     if mode == 'downflowgo' and run_outs_path:
-        run_outs = fiona.open(run_outs_path)
-        points = []
-        labels = []
+        with fiona.open(run_outs_path) as run_outs:
+            points = []
+            labels = []
 
-        for feature in run_outs:
-            geometry = shape(feature['geometry'])
-            properties = feature['properties']
-            if geometry.geom_type == 'Point':
-                x, y = geometry.x, geometry.y
-                points.append((x, y))
-                labels.append(properties['Effusion_r'])
-                ax.plot(x, y, 'b', marker=7)
+            for feature in run_outs:
+                geometry = shape(feature['geometry'])
+                properties = feature['properties']
+                if geometry.geom_type == 'Point':
+                    x, y = geometry.x, geometry.y
+                    points.append((x, y))
+                    labels.append(properties['Effusion_r'])
+                    ax.plot(x, y, 'b', marker=7)
 
-        unique_points = {}
-        for (x, y), label in zip(points, labels):
-            if (x, y) not in unique_points or label < unique_points[(x, y)]:
-                unique_points[(x, y)] = label
+            unique_points = {}
+            for (x, y), label in zip(points, labels):
+                if (x, y) not in unique_points or label < unique_points[(x, y)]:
+                    unique_points[(x, y)] = label
 
-        for (x, y), label in unique_points.items():
-            ax.annotate(label, (x, y), xytext=(0, 8), textcoords='offset points', color='blue', weight='bold',
-                        fontsize=10, ha='center')
+            for (x, y), label in unique_points.items():
+                ax.annotate(label, (x, y), xytext=(0, 8), textcoords='offset points', color='blue', weight='bold',
+                            fontsize=10, ha='center')
 
     # ------------ Add legend and colorbar ------------
 
-    # Add the legend image to the map
-    ax.plot([], [], 'r^', markersize=7, label='Bouche éruptive ('+ flow_id+')')
-    ax.plot([], [], '-r', label='Trajectoire principale')
-
-    if mode == 'downflowgo':
-        ax.plot([], [], 'bv', markersize=5, label='Distances atteintes \npour un débit donné (m$^{3}$/s)')
-
-    if monitoring_network_path == str(0):
-        pass
-    else:
-        ax.plot([], [], 'k.', markersize=5, label='Réseau OVPF')
-
-    if lavaflow_outline_path == str(0):
-        pass
-    else:
-        ax.plot([], [], 'k-', markersize=10, label='Contour de la coulée')
-
-    legend=ax.legend(bbox_to_anchor=(1, 0.7), loc="upper left", fontsize='8')
-    legend.get_frame().set_linewidth(0)
     # Adjust the figure size
     fig.subplots_adjust(right=0.7)
     fig.subplots_adjust(left=0.1)
@@ -218,23 +200,113 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode):
     sm.set_array([])  # Set empty array for the colorbar
     cbar = plt.colorbar(sm, cax=cax, orientation='horizontal')
 
-    if mode == 'downflowgo':
-        cbar.ax.set_title("Simulation DOWNFLOWGO \n \n \nProbabilité de passage de la coulée", fontsize=8, loc='left')
-    else:
-        cbar.ax.set_title("Simulation DOWNFLOW \n \n \nProbabilité de passage de la coulée", fontsize=8, loc='left')
 
-    cbar.set_label("Basse                        Haute", fontsize=8, loc='left')
-    cbar.set_ticks([])
-    cbar.set_ticklabels([])
-    #cbar.ax.set_position([0.71, 0.71, 0.2, 0.05])
+    # Adjust the position of the legend and colorbar
+    # Rotate label of Y and orientate vertically
+    ax.set_yticks(ax.get_yticks())
+    ax.set_yticklabels(ax.get_yticklabels(), rotation='vertical')
+
+
+
+    if language == 'FR':
+        # Add the legend image to the map
+        ax.plot([], [], 'r^', markersize=7, label='Bouche éruptive ('+ flow_id+')')
+        ax.plot([], [], '-r', label='Trajectoire principale')
+
+        if mode == 'downflowgo':
+            ax.plot([], [], 'bv', markersize=5, label='Distances atteintes \npour un débit donné (m$^{3}$/s)')
+
+        # Plot monitoring network vector layer
+        if not monitoring_network_path or monitoring_network_path == "0":
+            pass  # pass if no value or "0"
+        else:
+            ax.plot([], [], 'k.', markersize=5, label='Stations de surveillance')
+
+        if not lavaflow_outline_path or lavaflow_outline_path == "0":
+            pass  # pass if no value or "0"
+        else:
+            ax.plot([], [], 'k-', markersize=10, label='Contour de la coulée')
+
+        if mode == 'downflowgo':
+            cbar.ax.set_title("Simulation DOWNFLOWGO \n \n \nProbabilité de passage de la coulée", fontsize=8, loc='left')
+        else:
+            cbar.ax.set_title("Simulation DOWNFLOW \n \n \nProbabilité de passage de la coulée", fontsize=8, loc='left')
+
+        cbar.set_label("Basse                        Haute", fontsize=8, loc='left')
+        cbar.set_ticks([])
+        cbar.set_ticklabels([])
+        #cbar.ax.set_position([0.71, 0.71, 0.2, 0.05])
+
+        # ------------ Final adjustments ------------
+
+        #show label from y axis en completo
+        #formatter = ScalarFormatter(useMathText=False)
+        #formatter.set_scientific(False)
+        #ax.yaxis.set_major_formatter(formatter)
+
+        # Adjust the position of the legend and colorbar
+        # Rotate label of Y and orientate vertically
+        ax.set_yticks(ax.get_yticks())
+        ax.set_yticklabels(ax.get_yticklabels(), rotation='vertical')
+
+        # Add title and date
+        title = f'Carte de simulation DOWNFLOW'
+        if mode == 'downflowgo':
+            title = 'Carte de simulation DOWNFLOWGO'
+
+        ax.set_title(f'{title} pour l\'éruption en cours\n' + str(Date))
+
+    if language == "EN":
+
+        # Add the legend image to the map
+        ax.plot([], [], 'r^', markersize=7, label='Main vent (' + flow_id + ')')
+        ax.plot([], [], '-r', label='Line of steepest descend')
+
+        if mode == 'downflowgo':
+            ax.plot([], [], 'bv', markersize=5, label='Runouts for a given \neffusion rate (m$^{3}$/s)')
+
+        if not monitoring_network_path or monitoring_network_path == "0":
+            pass  # pass if no value or "0"
+        else:
+            ax.plot([], [], 'k.', markersize=5, label='Monitoring network')
+
+        if not lavaflow_outline_path or lavaflow_outline_path == "0":
+            pass  # pass if no value or "0"
+        else:
+            ax.plot([], [], 'k-', markersize=10, label='Lava flow outline')
+
+        if mode == 'downflowgo':
+            cbar.ax.set_title("DOWNFLOWGO modelling\n \n \nLava flow path probability", fontsize=8, loc='left')
+        else:
+            cbar.ax.set_title("DOWNFLOW modelling\n \n \nLava flow path probability", fontsize=8, loc='left')
+
+        cbar.set_label("Low                        High", fontsize=8, loc='left')
+        cbar.set_ticks([])
+        cbar.set_ticklabels([])
+        # cbar.ax.set_position([0.71, 0.71, 0.2, 0.05])
+
+        # ------------ Final adjustments ------------
+
+        # Add title and date
+        title = f'Short-term hazard map using DOWNFLOW'
+        if mode == 'downflowgo':
+            title = "Short-term hazard map using DOWNFLOWGO"
+
+        ax.set_title(f'{title} modelling \n for the ongoing eruption :' + str(Date))
 
     # Load Logo image
-    img = plt.imread(logo)
-    logo_box = OffsetImage(img, zoom=0.05)  # size of the logo
-    logo_anchor = (1.2, 0.02)  # Define the coordinate of the image anchor
-    # Create the annotation of the image (remove frame
-    ab = AnnotationBbox(logo_box, logo_anchor, xycoords='axes fraction', frameon=False)
-    ax.add_artist(ab)
+    if not logo or logo == "0":
+        pass  # pass if no value or "0"
+    else:
+        img = plt.imread(logo)
+        logo_box = OffsetImage(img, zoom=0.05)  # size of the logo
+        logo_anchor = (1.2, 0.02)  # Define the coordinate of the image anchor
+        # Create the annotation of the image (remove frame
+        ab = AnnotationBbox(logo_box, logo_anchor, xycoords='axes fraction', frameon=False)
+        ax.add_artist(ab)
+
+    legend = ax.legend(bbox_to_anchor=(1, 0.7), loc="upper left", fontsize='8')
+    legend.get_frame().set_linewidth(0)
 
     # Adding the "UNVERIFIED DATA" text in the middle of the map
     ax.text(
@@ -245,26 +317,6 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode):
         rotation=45,  # Rotate the text 45 degrees
         fontweight='bold')  # Bold text
 
-    # ------------ Final adjustments ------------
-
-    #show label from y axis en completo
-    #formatter = ScalarFormatter(useMathText=False)
-    #formatter.set_scientific(False)
-    #ax.yaxis.set_major_formatter(formatter)
-
-    # Adjust the position of the legend and colorbar
-    # Rotate label of Y and orientate vertically
-    ax.set_yticks(ax.get_yticks())
-    ax.set_yticklabels(ax.get_yticklabels(), rotation='vertical')
-
-    # Add title and date
-    title = f'Carte de simulation DOWNFLOW'
-    if mode == 'downflowgo':
-        title += "GO"
-
-    ax.set_title(f'{title} pour l\'éruption en cours\n' + str(Date))
-
-    plt.savefig(path_to_folder+'/map_'+ flow_id+'.png', dpi=300, bbox_inches='tight')
+    plt.savefig(path_to_folder + '/map_' + flow_id + '.png', dpi=300, bbox_inches='tight')
     plt.show()
     plt.close()
-    

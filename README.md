@@ -38,32 +38,28 @@ This folder includes :
 1) a folder **DOWNFLOW** containing the code in c++ of DOWNFLOW [Favalli et al. 2005](https://doi.org/10.1029/2004gl021718) 
 provided by Massimiliano Favalli (hopefully soon available on github).
 
-To install **DOWNFLOW** follow the instruction in the **README_DOWNFLOW** 
+To install **DOWNFLOW** follow the instruction in the **DOWNFLOW** folder: **README_DOWNFLOW.md** 
 
 
 2) the following scripts :
 
 - scripts to execute :
 
-The script   ``` main_downflow.py  ``` (or ``` main_downflow_GUI.py  ```) is a Python program designed to run **DOWNFLOW**.
+``` main_downflow.py  ``` (or ``` main_downflow_GUI.py  ```)  to run **DOWNFLOW** alone.
 
-The script   ``` main_downflowgo.py  ```(or ``` main_downflowgo_GUI.py  ```)  is a Python program designed to run in sequence **DOWNFLOW** and **FLOWGO**. 
+ ``` main_downflowgo.py  ```(or ``` main_downflowgo_GUI.py  ```)   to run in sequence **DOWNFLOW + FLOWGO**. 
 
 
-- scripts of the various functions :
+- scripts for various functions amoung which the important ones are:
 ```
   downflowcpp.py
-  run_flowgo_effusion_rate_array.py
-  txt_to_shape.py
-  run_flowgo.py
-  plot_flowgo_results.py
-  run_outs.py
   mapping.py
+  txt_to_shape.py
   ```
 
-3) the requirements and environment
+3) the configuration file, the requirements and environment
 
-## Actions:
+## Actions
 
 ### 1) Python packages to install before running
 
@@ -85,7 +81,7 @@ or requirements :
 ```pip install git+https://github.com/pyflowgo/pyflowgo.git   ```
 
 
-### Requiered file types:
+### 2) Requiered file types and configuration
 
 1) The DEM must be  ```.asc ``` format with UTM in WGS84, with the following header :
 ```
@@ -97,8 +93,28 @@ cellsize     5.00
 NODATA_value  0
  ```
 
+2) The configuration file: ```config_downflowgo.ini```:
+use this file to write your prefered paths by default
+```
+[paths]
+eruptions_folder = /Users/path/to your folder
+dem = /Users/path/to/your_dem.asc
+json = /Users/path/to/your_json.json
 
-### Run the guiS:
+#For mapping
+img_tif_map_background = /Users/path/to_your_background_for_mapping.tif
+monitoring_network = /Users/path/to_your_moniroting_station.shp (point geometry)
+lava_flow_outline = /Users/path/to_the_lava_flow_outline.shp (line geometry)
+logo = Users/path/to_the_logos.png 
+
+[language]
+# Set the language to EN (English) or FR (French)
+language = EN 
+```
+3) The ```.json``` file for PyFLOWGO:
+For more info go to ```https://github.com/pyflowgo/pyflowgo.git ```
+
+### 3) Run the GUIS
 
 To run DOWNFLOW :
  ``` python3 main_downflow_GUI.py ```
@@ -108,19 +124,22 @@ To run DOWNFLOWGO :
 
 ## Output files
 
-In the dedicated folder chosen in step 1) you will find:
-* all the results from pyflowgo and associated plots
-* A folder named **map** has been created and contains the following files :
+In the dedicated folder define in 2.1 (```eruptions_folder```) you will find:
+* A folder named **results_flowgo** with all the results from pyflowgo and associated plots
+* The map of the simulation that uses the above layers: ```map.png```
+* A new folder named **map** that contains the following files so you can create your own map with any GIS system:
+
   1) ```vent.shp```(the vent point)
-  2) ```Sim.asc ```(a raster with the flow path probabilities)
-  3) ```Path.shp``` (the line of steepest descent)
-  4) ```Run-outs.shp``` (the runout points for the given effusion rates along the main path)
-  5) ```map.png``` (the map of the simulation that uses the above layers with the IGN 2020 background)
+  2) ```sim.asc ```(a raster with the flow path probabilities)
+  3) ```losd_profile.txt``` (the line of steepest descent as text file)
+  4) ```losd.shp``` (the line of steepest descent as shape file)
+  5) ```runouts.shp``` (the runout points for the given effusion rates along the main path)
 
-You can either use the files to create your own map with any GIS system or directly use the map.png
-
- # Authors:
+    
+#  Authors
  Dr. Magdalena Oryaëlle Chevrel (oryaelle.chevrel@ird.fr) - Laboratoire Magmas et Volcans
 
- # Licence:
+Please do not hesitate the contact me for any further information or assistance
+
+# Licence
 The current license of the software is GPL v3.0.

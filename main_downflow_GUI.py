@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, ttk
 import os
+import configparser
 import csv
 import subprocess
 import downflowgo.mapping as mapping
@@ -14,10 +15,34 @@ if __name__ == "__main__":
     # Start the timer
     start_time = time.time()
 
-    path_to_resources = "/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF"
-    path_to_eruptions = "/Users/chevrel/GoogleDrive/Eruption_PdF"
-    path = os.path.abspath('') + "/downflowgo"
-    print('path', path)
+    # Load the INI configuration file
+    config = configparser.ConfigParser()
+    config.read("config_downflowgo.ini")
+    language = config["language"]["language"]
+    path_to_json = config["paths"]["json"]
+    path_to_eruptions = config["paths"]["eruptions_folder"]
+    dem = config["paths"]["dem"]
+    img_tif_map_background = config["paths"]["img_tif_map_background"]
+    monitoring_network_path = config["paths"]["monitoring_network"]
+    logo_path = config["paths"]["logo"]
+    lava_flow_outline_path = config["paths"]["lava_flow_outline"]
+
+    path_to_downflow = os.path.abspath('') + "/downflowgo"
+
+    print(f"path_to_downflow: {path_to_downflow}")
+
+    # Print to verify paths
+    print(f"path_to_eruptions: {path_to_eruptions}")
+    print(f"dem: {dem}")
+    print(f"img_tif_map_background: {img_tif_map_background}")
+    print(f"monitoring_network_path: {monitoring_network_path}")
+    print(f"logo_path: {logo_path}")
+    print(f"lava_flow_outline_path: {lava_flow_outline_path}")
+    print(f"Language is : {language}")
+
+   # path_to_resources = "/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF"
+   # path_to_eruptions = "/Users/chevrel/GoogleDrive/Eruption_PdF"
+   # path = os.path.abspath('') + "/downflowgo"
 
     def get_folder():
         folder_path = filedialog.askdirectory()
@@ -63,7 +88,7 @@ if __name__ == "__main__":
          and the vent_csv file that is either created from the coordinate or from the loaded csv'''
         global loaded_csv_file_path
         path_to_results = entry_path_to_results_var.get()
-        dem = os.path.join(os.path.abspath('DEM'), entry_dem_name_var.get())
+        dem = entry_dem_name_var.get()
         DH =entry_DH_var.get()
         n_path = entry_n_path_var.get()
         epsg_code = entry_epsg_code.get()
@@ -145,7 +170,7 @@ if __name__ == "__main__":
 
         # ------------>    load the parameter file  <------------
 
-        parameter_file_downflow = path + '/DOWNFLOW/parameters_range.txt'
+        parameter_file_downflow = path_to_downflow + '/DOWNFLOW/parameters_range.txt'
 
         # ------------>  open the csv file with the vent coordinates
         with open(csv_vent_file, 'r') as csvfile:
@@ -163,18 +188,18 @@ if __name__ == "__main__":
                 os.chdir(name_folder)
 
             # Returns an asc file with new (filled) DEM
-            downflowcpp.get_downflow_filled_dem(long, lat, dem, path, parameter_file_downflow)
+            downflowcpp.get_downflow_filled_dem(long, lat, dem, path_to_downflow, parameter_file_downflow)
             print("************************ DOWNFLOW filled DEM done *********")
 
             # Returns the profile.txt
             filled_dem = 'dem_filled_DH0.001_N1000.asc'
            # filled_dem = "/Users/chevrel/Documents/VIRUNGA/Nyiragongo/dem/nyiragongo_5m_clipped_filled.asc"
-            downflowcpp.get_downflow_losd(long, lat, filled_dem, path, parameter_file_downflow)
+            downflowcpp.get_downflow_losd(long, lat, filled_dem, path_to_downflow, parameter_file_downflow)
             print("************************ DOWNFLOW LoSD done *********")
             os.remove(path_to_folder + "/dem_filled_DH0.001_N1000.asc")
 
             # Returns an asc file with the lava flow path probabilities using the given DH and n
-            downflowcpp.get_downflow_probabilities(long, lat, dem, path, parameter_file_downflow, DH, n)
+            downflowcpp.get_downflow_probabilities(long, lat, dem, path_to_downflow, parameter_file_downflow, DH, n)
             print("******************* DOWNFLOW probability executed: sim.asc created **************************")
 
             # create map folder with layers in it
@@ -189,7 +214,8 @@ if __name__ == "__main__":
             losd_file = path_to_folder + "profile_00000.txt"
             shp_losd_file = path_to_folder + 'map/losd_' + flow_id + '.shp'
             txt_to_shape.get_path_shp(losd_file, shp_losd_file, epsg_code)
-            # os.remove(losd_file)
+            # move(losd_file)
+            os.rename(losd_file, path_to_folder + 'map/losd_' + flow_id + "_profile_00000.txt")
 
             shp_vent_file = path_to_folder + 'map/vent_' + flow_id + '.shp'
             txt_to_shape.get_vent_shp(csv_vent_file, shp_vent_file, epsg_code)
@@ -218,31 +244,30 @@ if __name__ == "__main__":
         values = get_values()
 
         # Initialize StringVars for the layers
-        ## TODO:  change default path to prefered path
-        img_tif_var = tk.StringVar(value=path_to_resources+"/mapping_data/map_layers/IGN-map-Background/IGN_SCAN25_2020_enclos_img.tif")
-        monitoring_network_var = tk.StringVar(value=path_to_resources + "/mapping_data/map_layers/stations_OVPF/All_Stations_Ovpf_update_2022.shp")
-        lava_flow_outline_var = tk.StringVar(value="0")
-        logo_var = tk.StringVar(value=path_to_resources+"/mapping_data/map_layers/accessoires/all_logo.png")
+        img_tif_map_background_var = tk.StringVar(value=img_tif_map_background)
+        monitoring_network_var = tk.StringVar(value=monitoring_network_path)
+        lava_flow_outline_var = tk.StringVar(value=lava_flow_outline_path)
+        logo_var = tk.StringVar(value=logo_path)
 
         # Define the map_layers dictionary initially
         map_layers = {
-            'img_tif_path': img_tif_var.get(),
+            'img_tif_map_background': img_tif_map_background_var.get(),
             'monitoring_network_path': monitoring_network_var.get(),
             'lava_flow_outline_path': lava_flow_outline_var.get(),
             'logo_path': logo_var.get()
         }
 
         # Frame for Background Map (.tif)
-        img_tif_frame = tk.Frame(map_window)
-        img_tif_frame.pack(anchor=tk.W)
-        label_img_tif = tk.Label(img_tif_frame, text="Background Map (.tif):")
-        label_img_tif.pack(side=tk.LEFT)
-        entry_img_tif = tk.Entry(img_tif_frame, textvariable=img_tif_var, width=60)
-        entry_img_tif.pack(side=tk.LEFT)
-        button_browse_img_tif = tk.Button(img_tif_frame, text="Browse",
-                                   command=lambda: [img_tif_var.set(filedialog.askopenfilename()),
-                                                    map_layers.update({'img_tif_path': img_tif_var.get()})])
-        button_browse_img_tif.pack(side=tk.LEFT)
+        img_tif_map_background_frame = tk.Frame(map_window)
+        img_tif_map_background_frame.pack(anchor=tk.W)
+        label_img_tif_map_background = tk.Label(img_tif_map_background_frame, text="Background Map (.tif):")
+        label_img_tif_map_background.pack(side=tk.LEFT)
+        entry_img_tif_map_background = tk.Entry(img_tif_map_background_frame, textvariable=img_tif_map_background_var, width=60)
+        entry_img_tif_map_background.pack(side=tk.LEFT)
+        button_browse_img_tif_map_background = tk.Button(img_tif_map_background_frame, text="Browse",
+                                                         command=lambda: [img_tif_map_background_var.set(
+                                                             filedialog.askopenfilename())])
+        button_browse_img_tif_map_background.pack(side=tk.LEFT)
 
         # Frame for monitoring_network (.shape)
         monitoring_network_frame = tk.Frame(map_window)
@@ -252,34 +277,45 @@ if __name__ == "__main__":
         entry_monitoring_network = tk.Entry(monitoring_network_frame, textvariable=monitoring_network_var, width=60)
         entry_monitoring_network.pack(side=tk.LEFT)
         button_browse_monitoring_network = tk.Button(monitoring_network_frame, text="Browse",
-                                   command=lambda: [monitoring_network_var.set(filedialog.askopenfilename()),
-                                                    map_layers.update({'monitoring_network_path': monitoring_network_var.get()})])
+                                                     command=lambda: [
+                                                         monitoring_network_var.set(filedialog.askopenfilename() or "0")])
         button_browse_monitoring_network.pack(side=tk.LEFT)
 
-        # Frame for lava_flow_outline (.shape)
+        monitoring_network_var.trace_add("write", lambda *args: map_layers.update(
+            {'monitoring_network_path':
+                 None if monitoring_network_var.get().strip() == "0" else monitoring_network_var.get().strip()}))
+
+        # Frame for lava_flow_outline (.shp)
         lava_flow_outline_frame = tk.Frame(map_window)
         lava_flow_outline_frame.pack(anchor=tk.W)
-        label_lava_flow_outline = tk.Label(lava_flow_outline_frame, text="LavaFlow outline (.shp): (0 if not)")
+        label_lava_flow_outline = tk.Label(lava_flow_outline_frame, text="Lava Flow outline (.shp): (0 if not)")
         label_lava_flow_outline.pack(side=tk.LEFT)
+
         entry_lava_flow_outline = tk.Entry(lava_flow_outline_frame, textvariable=lava_flow_outline_var, width=60)
         entry_lava_flow_outline.pack(side=tk.LEFT)
+
         button_browse_lava_flow_outline = tk.Button(lava_flow_outline_frame, text="Browse",
-                                   command=lambda: [lava_flow_outline_var.set(filedialog.askopenfilename()),
-                                                    map_layers.update(
-                                                        {'lava_flow_outline_path': lava_flow_outline_var.get()})])
+                                                    command=lambda: [
+                                                        lava_flow_outline_var.set(filedialog.askopenfilename() or "0")])
         button_browse_lava_flow_outline.pack(side=tk.LEFT)
 
-        # Frame for lava_flow_outline (.png)
+        lava_flow_outline_var.trace_add("write", lambda *args: map_layers.update(
+            {'lava_flow_outline_path': None if lava_flow_outline_var.get().strip() == "0"
+                else lava_flow_outline_var.get().strip()}))
+
+        # Frame for logo (.png)
         logo_frame = tk.Frame(map_window)
         logo_frame.pack(anchor=tk.W)
         label_logo = tk.Label(logo_frame, text="Logo(s) (.png): (0 if not)")
         label_logo.pack(side=tk.LEFT)
         entry_logo = tk.Entry(logo_frame, textvariable=logo_var, width=60)
         entry_logo.pack(side=tk.LEFT)
-        button_browse_logo = tk.Button(logo_frame, text="Browse",
-                                   command=lambda: [logo_var.set(filedialog.askopenfilename()),
-                                                    map_layers.update({'logo_path': logo_var.get()})])
+        button_browse_logo = tk.Button(logo_frame, text="Browse", command=lambda: [
+                                           logo_var.set(filedialog.askopenfilename() or "0")])
         button_browse_logo.pack(side=tk.LEFT)
+
+        logo_var.trace_add("write", lambda *args: map_layers.update(
+            {'logo_path': None if logo_var.get().strip() == "0" else logo_var.get().strip()}))
 
         # Button to create Map
         button_frame = tk.Frame(map_window)
@@ -299,7 +335,7 @@ if __name__ == "__main__":
         no_button = ttk.Button(button_frame, text="NO", command=lambda: close_all_windows(map_window, run_window, root))
         no_button.pack(side=tk.LEFT)
 
-    def process_and_create_mapping(values, map_layers, map_window, run_window, dem, sim_layers):
+    def process_and_create_mapping(values, map_layers, map_window, run_window, dem, sim_layers, language=language):
 
         if loaded_csv_file_path:
             with open(loaded_csv_file_path, 'r') as csvfile:
@@ -307,13 +343,13 @@ if __name__ == "__main__":
                 for row in csvreader:
                     flow_id = str(row['flow_id'])
                     path_to_results = entry_path_to_results_var.get() + '/' + flow_id
-                    mapping.create_map(path_to_results, dem, flow_id, map_layers, sim_layers, mode='downflow')
+                    mapping.create_map(path_to_results, dem, flow_id, map_layers, sim_layers, mode='downflow',language=language)
                     print(path_to_results, flow_id)
             close_all_windows(map_window, run_window, root)
         else:
             path_to_results = values['path_to_results'] +"/"+values['name']
             flow_id = values['name']
-            mapping.create_map(path_to_results, dem, flow_id, map_layers, sim_layers, mode='downflow')
+            mapping.create_map(path_to_results, dem, flow_id, map_layers, sim_layers, mode='downflow',language=language)
             close_all_windows(map_window, run_window, root)
 
     def close_all_windows(*windows):
@@ -336,7 +372,7 @@ if __name__ == "__main__":
     label_path_to_results = tk.Label(folder_frame, text="Path to Eruption Results:")
     label_path_to_results.pack(side=tk.LEFT)
     ## TODO: change path to prefered folder
-    entry_path_to_results_var = tk.StringVar(value=path_to_eruptions+"/test")
+    entry_path_to_results_var = tk.StringVar(value=path_to_eruptions)
     entry_path_to_results = tk.Entry(folder_frame, textvariable=entry_path_to_results_var, width=50)
     entry_path_to_results.pack(side=tk.LEFT)
     button_browse = tk.Button(folder_frame, text="Browse", command=get_folder)
@@ -381,7 +417,7 @@ if __name__ == "__main__":
     label_dem_name = tk.Label(dem_frame, text="DEM:")
     label_dem_name.pack(side=tk.LEFT)  # Aligner à gauche
     ## TODO: change path to prefered DEM
-    entry_dem_name_var = tk.StringVar(value=path_to_resources+"/DEM/DEM-20240411-net-5m.asc")
+    entry_dem_name_var = tk.StringVar(value=dem)
     entry_dem_name = tk.Entry(dem_frame, textvariable=entry_dem_name_var, width=80)
     entry_dem_name.pack(side=tk.LEFT)
     button_browse = tk.Button(dem_frame, text="Browse", command=lambda: get_file_name(entry_dem_name_var))
@@ -409,8 +445,6 @@ if __name__ == "__main__":
     entry_epsg_code_var = tk.StringVar(value="32740")
     entry_epsg_code = tk.Entry(N_DH_EPSG_frame, textvariable=entry_epsg_code_var, width=8)
     entry_epsg_code.pack(side=tk.LEFT)
-
-
 
 
     # Button to open Downflow window
