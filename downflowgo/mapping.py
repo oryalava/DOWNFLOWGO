@@ -32,6 +32,7 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, langu
     vent_path = sim_layers['shp_vent_file']
     sim_tif_file = sim_layers['cropped_geotiff_file']
     tiff_file = map_layers['img_tif_map_background']
+    source_img_tif_map_background = map_layers["source_img_tif_map_background"]
     lavaflow_outline_path = map_layers['lava_flow_outline_path']
     monitoring_network_path = map_layers['monitoring_network_path']
     logo = map_layers['logo_path']
@@ -228,9 +229,9 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, langu
             ax.plot([], [], 'k-', markersize=10, label='Contour de la coulée')
 
         if mode == 'downflowgo':
-            cbar.ax.set_title("Simulation DOWNFLOWGO \n \n \nProbabilité de passage de la coulée", fontsize=8, loc='left')
+            cbar.ax.set_title("Probabilité de passage de la coulée", fontsize=8, loc='left')
         else:
-            cbar.ax.set_title("Simulation DOWNFLOW \n \n \nProbabilité de passage de la coulée", fontsize=8, loc='left')
+            cbar.ax.set_title("Probabilité de passage de la coulée", fontsize=8, loc='left')
 
         cbar.set_label("Basse                        Haute", fontsize=8, loc='left')
         cbar.set_ticks([])
@@ -276,9 +277,9 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, langu
             ax.plot([], [], 'k-', markersize=10, label='Lava flow outline')
 
         if mode == 'downflowgo':
-            cbar.ax.set_title("DOWNFLOWGO modelling\n \n \nLava flow path probability", fontsize=8, loc='left')
+            cbar.ax.set_title("Lava flow path probability", fontsize=8, loc='left')
         else:
-            cbar.ax.set_title("DOWNFLOW modelling\n \n \nLava flow path probability", fontsize=8, loc='left')
+            cbar.ax.set_title("Lava flow path probability", fontsize=8, loc='left')
 
         cbar.set_label("Low                        High", fontsize=8, loc='left')
         cbar.set_ticks([])
@@ -316,6 +317,13 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, langu
         ha='center', va='center',  # Centered horizontally and vertically
         rotation=45,  # Rotate the text 45 degrees
         fontweight='bold')  # Bold text
+
+    # Adding text for credit of the background map
+    ax.text(
+        0.01, 0.01, source_img_tif_map_background,
+        transform=ax.transAxes,
+        fontsize=8, color='k',
+        ha='left', va='bottom' )
 
     plt.savefig(path_to_folder + '/map_' + flow_id + '.png', dpi=300, bbox_inches='tight')
     plt.show()

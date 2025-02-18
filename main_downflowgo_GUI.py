@@ -28,6 +28,7 @@ if __name__ == "__main__":
     path_to_eruptions = config["paths"]["eruptions_folder"]
     dem = config["paths"]["dem"]
     img_tif_map_background = config["paths"]["img_tif_map_background"]
+    source_img_tif_map_background = config["paths"]["source_img_tif_map_background"]
     monitoring_network_path = config["paths"]["monitoring_network"]
     logo_path = config["paths"]["logo"]
     lava_flow_outline_path = config["paths"]["lava_flow_outline"]
@@ -356,7 +357,8 @@ if __name__ == "__main__":
             'img_tif_map_background': img_tif_map_background_var.get(),
             'monitoring_network_path': monitoring_network_var.get(),
             'lava_flow_outline_path': lava_flow_outline_var.get(),
-            'logo_path': logo_var.get()
+            'logo_path': logo_var.get(),
+            'source_img_tif_map_background': source_img_tif_map_background
         }
 
         # Frame for Background Map (.tif)
