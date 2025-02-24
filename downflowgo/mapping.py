@@ -36,6 +36,7 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, langu
     lavaflow_outline_path = map_layers['lava_flow_outline_path']
     monitoring_network_path = map_layers['monitoring_network_path']
     logo = map_layers['logo_path']
+    unverified_data = map_layers['unverified_data']
 
     run_outs_path = None
     if mode == 'downflowgo':
@@ -310,21 +311,28 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, langu
     legend.get_frame().set_linewidth(0)
 
     # Adding the "UNVERIFIED DATA" text in the middle of the map
-    ax.text(
-        0.5, 0.5, 'UNVERIFIED DATA \n NOT FOR DISTRIBUTION',
-        transform=ax.transAxes,  # This makes the text relative to the axes
-        fontsize=30, color='red', alpha=0.5,  # Red color, semi-transparent
-        ha='center', va='center',  # Centered horizontally and vertically
-        rotation=45,  # Rotate the text 45 degrees
-        fontweight='bold')  # Bold text
-
+    if unverified_data == str('0'):
+        pass
+    else:
+        ax.text(
+            0.5, 0.5,  unverified_data.replace("-", "\n"),
+            transform=ax.transAxes,  # This makes the text relative to the axes
+            fontsize=30, color='red', alpha=0.5,  # Red color, semi-transparent
+            ha='center', va='center',  # Centered horizontally and vertically
+            rotation=45,  # Rotate the text 45 degrees
+            fontweight='bold')  # Bold text
+        
     # Adding text for credit of the background map
-    ax.text(
-        0.01, 0.01, source_img_tif_map_background,
-        transform=ax.transAxes,
-        fontsize=8, color='k',
-        ha='left', va='bottom' )
+    if source_img_tif_map_background == str('0'):
+        pass
+    else:
+        ax.text(
+            0.01, 0.01, source_img_tif_map_background,
+            transform=ax.transAxes,
+            fontsize=8, color='k',
+            ha='left', va='bottom' )
 
     plt.savefig(path_to_folder + '/map_' + flow_id + '.png', dpi=300, bbox_inches='tight')
     plt.show()
     plt.close()
+    

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, ttk
 import os
+import sys
 import configparser
 import downflowgo.mapping as mapping
 
@@ -18,6 +19,12 @@ def open_create_map_window(root):
 
     config = configparser.ConfigParser()
     config.read("config_downflowgo.ini")
+
+
+    if not config.sections():
+        print(f"Error : Impossible to read '{config_file}'")
+        sys.exit(1)
+
     dem = config["paths"]["dem"]
     language = config["language"]["language"]
     path_to_eruptions = config["paths"]["eruptions_folder"]
@@ -25,7 +32,8 @@ def open_create_map_window(root):
     monitoring_network_path = config["paths"]["monitoring_network"]
     lava_flow_outline_path = config["paths"]["lava_flow_outline"]
     logo_path = config["paths"]["logo"]
-    source_img_tif_map_background = config["paths"]["source_img_tif_map_background"]
+    source_img_tif_map_background = config["notes"]["source_img_tif_map_background"]
+    unverified_data = config["notes"]["unverified_data"]
 
     entry_path_to_results_var = tk.StringVar(value=path_to_eruptions)
 
@@ -59,7 +67,8 @@ def open_create_map_window(root):
         'monitoring_network_path': monitoring_network_path,
         'lava_flow_outline_path': lava_flow_outline_path,
         'logo_path': logo_path,
-        'source_img_tif_map_background': source_img_tif_map_background
+        'source_img_tif_map_background': source_img_tif_map_background,
+        'unverified_data': unverified_data
     }
 
     def create_file_selector(frame, label_text, variable):

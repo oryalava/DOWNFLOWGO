@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog, ttk
 import os
+import sys
 import configparser
+import argparse
 import csv
 import subprocess
 import datetime
@@ -20,19 +22,30 @@ if __name__ == "__main__":
     # Start the timer
     start_time = time.time()
 
+    # Check argument 
+    if len(sys.argv) < 2:
+        print("Usage:  python main_downflowgo_GUI.py config_downflowgo.ini")
+        sys.exit(1)
+    config_file = sys.argv[1]
+
     # Load the INI configuration file
     config = configparser.ConfigParser()
-    config.read("config_downflowgo.ini")
+    config.read(config_file)
+
+    if not config.sections():
+        print(f"Error : Impossible to read '{config_file}'")
+        sys.exit(1)
+
     language = config["language"]["language"]
     path_to_json = config["paths"]["json"]
     path_to_eruptions = config["paths"]["eruptions_folder"]
     dem = config["paths"]["dem"]
     img_tif_map_background = config["paths"]["img_tif_map_background"]
-    source_img_tif_map_background = config["paths"]["source_img_tif_map_background"]
     monitoring_network_path = config["paths"]["monitoring_network"]
     logo_path = config["paths"]["logo"]
     lava_flow_outline_path = config["paths"]["lava_flow_outline"]
-
+    source_img_tif_map_background = config["notes"]["source_img_tif_map_background"]
+    unverified_data = config["notes"]["unverified_data"]
     # Print to verify paths
     print(f"Json: {path_to_json}")
     print(f"path_to_eruptions: {path_to_eruptions}")
@@ -358,7 +371,8 @@ if __name__ == "__main__":
             'monitoring_network_path': monitoring_network_var.get(),
             'lava_flow_outline_path': lava_flow_outline_var.get(),
             'logo_path': logo_var.get(),
-            'source_img_tif_map_background': source_img_tif_map_background
+            'source_img_tif_map_background': source_img_tif_map_background,
+            'unverified_data': unverified_data
         }
 
         # Frame for Background Map (.tif)

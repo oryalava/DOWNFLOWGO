@@ -107,9 +107,16 @@ monitoring_network = /Users/path/to_your_moniroting_station.shp (point geometry)
 lava_flow_outline = /Users/path/to_the_lava_flow_outline.shp (line geometry)
 logo = Users/path/to_the_logos.png 
 
+[notes]
+# Credit for background image
+source_img_tif_map_background =  © whatever credit
+# Set motion about data, e.g 'UNVERIFIED DATA - NOT FOR DISTRIBUTION' or 'DONNEES NON VALIDES - NE PAS DIFFUSER' or 0 for nothing
+unverified_data = UNVERIFIED DATA - NOT FOR DISTRIBUTION
+
 [language]
 # Set the language to EN (English) or FR (French)
 language = EN 
+
 ```
 3) The ```.json``` file for PyFLOWGO:
 For more info go to ```https://github.com/pyflowgo/pyflowgo.git ```
@@ -117,10 +124,10 @@ For more info go to ```https://github.com/pyflowgo/pyflowgo.git ```
 ### 3) Run the GUIS
 
 To run DOWNFLOW :
- ``` python3 main_downflow_GUI.py ```
+ ``` python main_downflow_GUI.py config_downflowgo.ini ```
 
 To run DOWNFLOWGO :
- ``` python3 main_downflowgo_GUI.py ```
+ ``` python main_downflowgo_GUI.py config_downflowgo.ini ```
 
 ## Output files
 
