@@ -17,8 +17,19 @@ def open_create_map_window(root):
     map_window.title("Create Map")
     map_window.geometry("900x300")
 
+    # Check argument 
+    if len(sys.argv) < 2:
+        print("Usage:  python main_downflowgo_GUI.py config_downflowgo.ini")
+        sys.exit(1)
+    config_file = sys.argv[1]
+
+    # Load the INI configuration file
     config = configparser.ConfigParser()
-    config.read("config_downflowgo.ini")
+    config.read(config_file)
+
+    if not config.sections():
+        print(f"Error : Impossible to read '{config_file}'")
+        sys.exit(1)
 
 
     if not config.sections():
@@ -122,3 +133,4 @@ if __name__ == "__main__":
     root.withdraw()
     open_create_map_window(root)
     root.mainloop()
+    sys.exit()  
