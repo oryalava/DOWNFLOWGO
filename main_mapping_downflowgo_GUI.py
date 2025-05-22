@@ -36,13 +36,15 @@ def open_create_map_window(root):
         print(f"Error : Impossible to read '{config_file}'")
         sys.exit(1)
 
-    dem = config["paths"]["dem"]
+
     language = config["language"]["language"]
     path_to_eruptions = config["paths"]["eruptions_folder"]
-    img_tif_map_background = config["paths"]["img_tif_map_background"]
-    monitoring_network_path = config["paths"]["monitoring_network"]
-    lava_flow_outline_path = config["paths"]["lava_flow_outline"]
-    logo_path = config["paths"]["logo"]
+    dem = config["paths"]["dem"]
+    name_vent = config["paths"]["name_vent"]
+    img_tif_map_background = config["mapping"]["img_tif_map_background"]
+    monitoring_network_path = config["mapping"]["monitoring_network"]
+    lava_flow_outline_path = config["mapping"]["lava_flow_outline"]
+    logo_path = config["notes"]["logo"]
     source_img_tif_map_background = config["notes"]["source_img_tif_map_background"]
     unverified_data = config["notes"]["unverified_data"]
 

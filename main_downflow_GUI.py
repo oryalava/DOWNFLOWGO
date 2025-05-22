@@ -31,32 +31,23 @@ if __name__ == "__main__":
         sys.exit(1)
 
     language = config["language"]["language"]
-    path_to_json = config["paths"]["json"]
     path_to_eruptions = config["paths"]["eruptions_folder"]
     dem = config["paths"]["dem"]
-    img_tif_map_background = config["paths"]["img_tif_map_background"]
-    monitoring_network_path = config["paths"]["monitoring_network"]
-    logo_path = config["paths"]["logo"]
-    lava_flow_outline_path = config["paths"]["lava_flow_outline"]
+    name_vent = config["paths"]["name_vent"]
+    img_tif_map_background = config["mapping"]["img_tif_map_background"]
+    monitoring_network_path = config["mapping"]["monitoring_network"]
+    lava_flow_outline_path = config["mapping"]["lava_flow_outline"]
+    logo_path = config["notes"]["logo"]
     source_img_tif_map_background = config["notes"]["source_img_tif_map_background"]
     unverified_data = config["notes"]["unverified_data"]
+    easting = config["downflow"]["easting"]
+    northing = config["downflow"]["northing"]
+    DH = config["downflow"]["DH"]
+    n_path = config["downflow"]["n_path"]
+    epsg_code =config["downflow"]["epsg_code"]
 
     path_to_downflow = os.path.abspath('') + "/downflowgo"
-
     print(f"path_to_downflow: {path_to_downflow}")
-
-    # Print to verify paths
-    print(f"path_to_eruptions: {path_to_eruptions}")
-    print(f"dem: {dem}")
-    print(f"img_tif_map_background: {img_tif_map_background}")
-    print(f"monitoring_network_path: {monitoring_network_path}")
-    print(f"logo_path: {logo_path}")
-    print(f"lava_flow_outline_path: {lava_flow_outline_path}")
-    print(f"Language is : {language}")
-
-   # path_to_resources = "/Users/chevrel/Documents/DOWNFLOWGO_PDF_OVPF"
-   # path_to_eruptions = "/Users/chevrel/GoogleDrive/Eruption_PdF"
-   # path = os.path.abspath('') + "/downflowgo"
 
     def get_folder():
         folder_path = filedialog.askdirectory()
@@ -399,7 +390,7 @@ if __name__ == "__main__":
     name_frame.pack(anchor=tk.W)
     label_name = tk.Label(name_frame, text="Name of the vent:")
     label_name.pack(side=tk.LEFT)
-    entry_name_var = tk.StringVar(value="Main_vent")
+    entry_name_var = tk.StringVar(value=name_vent)
     entry_name = tk.Entry(name_frame, textvariable=entry_name_var, width=20)
     entry_name.pack(side=tk.LEFT)
 
@@ -409,13 +400,13 @@ if __name__ == "__main__":
     # Easting
     label_easting = tk.Label(easting_northing_frame, text="Easting (UTM):")
     label_easting.pack(side=tk.LEFT)
-    entry_easting_var = tk.StringVar(value="369082.7")
+    entry_easting_var = tk.StringVar(value=easting)
     entry_easting = tk.Entry(easting_northing_frame, textvariable=entry_easting_var, width=15)
     entry_easting.pack(side=tk.LEFT)
     #  Northing
     label_northing = tk.Label(easting_northing_frame, text="Northing (UTM):")
     label_northing.pack(side=tk.LEFT)
-    entry_northing_var = tk.StringVar(value="7647204.29")
+    entry_northing_var = tk.StringVar(value=northing)
     entry_northing = tk.Entry(easting_northing_frame, textvariable=entry_northing_var, width=15)
     entry_northing.pack(side=tk.LEFT)
 
@@ -446,19 +437,19 @@ if __name__ == "__main__":
     # DH
     label_DH = tk.Label(N_DH_EPSG_frame, text="DH:")
     label_DH.pack(side=tk.LEFT)
-    entry_DH_var = tk.StringVar(value="2")
+    entry_DH_var = tk.StringVar(value=DH)
     entry_DH = tk.Entry(N_DH_EPSG_frame, textvariable=entry_DH_var, width=4)
     entry_DH.pack(side=tk.LEFT)
     #  N
     label_n_path = tk.Label(N_DH_EPSG_frame, text="N:")
     label_n_path.pack(side=tk.LEFT)
-    entry_n_path_var = tk.StringVar(value="10000")
+    entry_n_path_var = tk.StringVar(value=n_path)
     entry_n_path = tk.Entry(N_DH_EPSG_frame, textvariable=entry_n_path_var, width=8)
     entry_n_path.pack(side=tk.LEFT)
     #  EPSG
     label_epsg_code = tk.Label(N_DH_EPSG_frame, text="EPSG:")
     label_epsg_code.pack(side=tk.LEFT)
-    entry_epsg_code_var = tk.StringVar(value="32740")
+    entry_epsg_code_var = tk.StringVar(value=epsg_code)
     entry_epsg_code = tk.Entry(N_DH_EPSG_frame, textvariable=entry_epsg_code_var, width=8)
     entry_epsg_code.pack(side=tk.LEFT)
 
