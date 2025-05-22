@@ -94,28 +94,51 @@ NODATA_value  0
  ```
 
 2) The configuration file: ```config_downflowgo.ini```:
-use this file to write your prefered paths by default
+use this file to write the paths and all parameters needed to run the code
 ```
 [paths]
-eruptions_folder = /Users/path/to your folder
-dem = /Users/path/to/your_dem.asc
-json = /Users/path/to/your_json.json
+eruptions_folder =/your_path/DOWNFLOWGO/test
+dem =/your_path/downflowgo/DOWNFLOW/reunion_srtm_25m_utm.asc
+name_vent = Vent_1
 
-#For mapping
-img_tif_map_background = /Users/path/to_your_background_for_mapping.tif
-monitoring_network = /Users/path/to_your_moniroting_station.shp (point geometry)
-lava_flow_outline = /Users/path/to_the_lava_flow_outline.shp (line geometry)
-logo = Users/path/to_the_logos.png 
+#For DOWNFLOW:
+[downflow]
+# vent coordinate by default
+easting = 369082.7
+northing = 7647204.29
 
+# La Reunion: DH= 2; n_path = 10000
+DH= 2
+n_path = 10000
+epsg_code = 32740
+# La Reunion: 32740; Hawaii: ; Galapagos:
+
+#For PyFLOWGO:
+[pyflowgo]
+json = /your_path/DOWNFLOWGO/test/PdF_template.json
+effusion_rate_range = 5,25,5
+
+#For Mapping:
+[mapping]
+img_tif_map_background = /your_path/test/HS_reunion_25m.tif
+
+monitoring_network = /your_path/test/example_monitoring_stations.shp
+# this is a point geometryn if none = 0
+lava_flow_outline = /your_path/test/example_lavaflow_outline.shp
+# this is a polygone geometry # if none = 0
+
+#For image credits and notes:
 [notes]
+# this is a polygone geometry
+logo = /your_path/your_logo.png
 # Credit for background image
-source_img_tif_map_background =  © whatever credit
+source_img_tif_map_background =  © credit 
 # Set motion about data, e.g 'UNVERIFIED DATA - NOT FOR DISTRIBUTION' or 'DONNEES NON VALIDES - NE PAS DIFFUSER' or 0 for nothing
 unverified_data = UNVERIFIED DATA - NOT FOR DISTRIBUTION
 
 [language]
 # Set the language to EN (English) or FR (French)
-language = EN 
+language = EN
 
 ```
 3) The ```.json``` file for PyFLOWGO:
