@@ -1,4 +1,4 @@
-input_DEM ./Clip_reunion_25m.asc
+input_DEM ./reunion_srtm_25m_utm.asc
 Xorigine 369082.7                        # longitude of the vent
 Yorigine 7647204.29                     # latitude of the vent
 n_path 10000                              # Number of runs
