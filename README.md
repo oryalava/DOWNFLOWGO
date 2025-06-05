@@ -83,7 +83,7 @@ or requirements :
 
 ### 2) Requiered file types and configuration
 
-1) The DEM must be  ```.asc ``` format with UTM in WGS84, with the following header :
+1) The DEM must be  ```.asc ``` format with UTM in WGS84, with the following header (see example /downflowgo/DOWNFLOW/reunion_srtm_25m_utm.asc) :
 ```
 ncols        3193
 nrows        2305
@@ -94,7 +94,7 @@ NODATA_value  0
  ```
 
 2) The configuration file: ```config_downflowgo.ini```:
-use this file to write the paths and all parameters needed to run the code
+Update the paths and all parameters needed to run the code with your configuration.
 ```
 [paths]
 eruptions_folder =/your_path/DOWNFLOWGO/test
@@ -142,7 +142,7 @@ language = EN
 
 ```
 3) The ```.json``` file for PyFLOWGO:
-For more info go to ```https://github.com/pyflowgo/pyflowgo.git ```
+For more information go to ```https://github.com/pyflowgo/pyflowgo.git ```
 
 ### 3) Run the GUIS
 

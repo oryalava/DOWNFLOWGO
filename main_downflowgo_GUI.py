@@ -12,7 +12,8 @@ import json
 import downflowgo.mapping as mapping
 import downflowgo.downflowcpp as downflowcpp
 import downflowgo.txt_to_shape as txt_to_shape
-
+import shutil
+import pandas as pd
 import pyflowgo.run_flowgo_effusion_rate_array as run_flowgo_effusion_rate_array
 import pyflowgo.run_flowgo as run_flowgo
 import pyflowgo.run_outs as run_outs
@@ -234,14 +235,28 @@ if __name__ == "__main__":
         # ------------>  open the csv file with the vent coordinates
         with open(csv_vent_file, 'r') as csvfile:
             csvreader = csv.DictReader(csvfile, delimiter=';')
-
             for row in csvreader:
                 flow_id = str(row['flow_id'])
                 long = str(row['X'])
                 lat = str(row['Y'])
+                # check if dem format is ok and if vent coordinates are within the DEM
+                downflowcpp.check_dem(long, lat, dem)
+                print("************* DEM ok *********")
+
                 name_folder = path_to_results + '/' + flow_id
+                if os.path.exists(name_folder):
+                    response = input(f"The folder '{name_folder}' already exists. Overwrite? [y/N]: ").strip().lower()
+                    if response == 'y':
+                        shutil.rmtree(name_folder)
+                        os.mkdir(name_folder)
+                        print(f"Folder '{name_folder}' overwritten.")
+                    else:
+                        print("Write a new Name of the vent")
+                        sys.exit("Program stopped by the user.")
+                else:
+                    os.mkdir(name_folder)
                 path_to_folder = name_folder + '/'
-                os.mkdir(name_folder)
+
                 os.chdir(name_folder)
 
             # Returns an asc file with new (filled) DEM
@@ -281,13 +296,20 @@ if __name__ == "__main__":
                 os.mkdir(path_to_flowgo_results)
             except FileExistsError:
                 pass
+            # get losd from DOWNFLOW and clean it if necessary
+            losd_file = path_to_folder + "profile_00000.txt"
+            slope_file = losd_file
+            df = pd.read_csv(slope_file, delim_whitespace=True)
+            df = df.dropna()
+            df_cleaned = df[df['L'].diff().fillna(1) > 0]
+            assert all(df_cleaned['L'].diff().dropna() > 0), "L is still not strictly increasing"
+            df_cleaned.to_csv(slope_file, sep="\t", index=False)
 
             # Run FLOWGO for json defined effusion rate
             if effusion_rates["first_eff_rate"] == 0:
                 # when effusion rate = 0,  flowgo calculates the effusion rate base on the channel dimensions
                 
                 json_file_new = path_to_flowgo_results + 'parameters_' + flow_id + ".json"
-                slope_file = losd_file
                 with open(template_json_file, "r") as data_file:
                     read_json_data = json.load(data_file)
                 read_json_data["slope_file"] = slope_file
@@ -317,7 +339,6 @@ if __name__ == "__main__":
                 first_eff_rate, last_eff_rate, step_eff_rate = effusion_rates  # Unpack the tuple
                 simulation = run_flowgo_effusion_rate_array.StartFlowgo()
                 json_file_new = path_to_flowgo_results + 'parameters_' + flow_id + ".json"
-                slope_file = losd_file
                 simulation.make_new_json(template_json_file, flow_id, slope_file, json_file_new)
                 simulation.run_flowgo_effusion_rate_array(json_file_new, path_to_flowgo_results, slope_file, effusion_rates)
                 
