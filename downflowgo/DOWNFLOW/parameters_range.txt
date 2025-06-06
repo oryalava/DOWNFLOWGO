@@ -1,4 +1,4 @@
-input_DEM /Users/chevrel/Documents/GitHub/DOWNFLOWGO/downflowgo/DOWNFLOW/reunion_srtm_25m_utm.asc
+input_DEM your_path/test/srtm_48_17_utm.asc
 Xorigine 369082.7
 Yorigine 7647204.29
 n_path 10000
