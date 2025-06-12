@@ -5,6 +5,7 @@ import sys
 import configparser
 import csv
 import subprocess
+import shutil
 import downflowgo.mapping as mapping
 import downflowgo.downflowcpp as downflowcpp
 import downflowgo.txt_to_shape as txt_to_shape
@@ -44,6 +45,7 @@ if __name__ == "__main__":
     northing = config["downflow"]["northing"]
     DH = config["downflow"]["DH"]
     n_path = config["downflow"]["n_path"]
+    slope_step = config["downflow"]["slope_step"]
     epsg_code =config["downflow"]["epsg_code"]
 
     path_to_downflow = os.path.abspath('') + "/downflowgo"
@@ -96,6 +98,7 @@ if __name__ == "__main__":
         dem = entry_dem_name_var.get()
         DH =entry_DH_var.get()
         n_path = entry_n_path_var.get()
+        slope_step = entry_slope_step_var.get()
         epsg_code = entry_epsg_code.get()
 
         # Use the loaded CSV file if available, otherwise use the default csv_vent_file path
@@ -112,6 +115,7 @@ if __name__ == "__main__":
                     'dem': dem,
                     'DH': DH,
                     'n_path': n_path,
+                    'slope_step' : slope_step,
                     'epsg_code': epsg_code
                 }
                 return values
@@ -125,6 +129,7 @@ if __name__ == "__main__":
                 'csv_vent_file': csv_vent_file,
                 'dem': dem,
                 'DH': DH,
+                'slope_step': slope_step,
                 'n_path': n_path,
                 'epsg_code': epsg_code
             }
@@ -169,6 +174,7 @@ if __name__ == "__main__":
         csv_vent_file = values['csv_vent_file']
         DH = values['DH']
         n = values['n_path']
+        slope_step = values['slope_step']
         epsg_code = values['epsg_code']
 
         #downflowcpp.run_downflow_simple(path_to_results,dem,csv_vent_file, crs)
@@ -180,16 +186,28 @@ if __name__ == "__main__":
         # ------------>  open the csv file with the vent coordinates
         with open(csv_vent_file, 'r') as csvfile:
             csvreader = csv.DictReader(csvfile, delimiter=';')
-
             for row in csvreader:
-
                 flow_id = str(row['flow_id'])
                 long = str(row['X'])
                 lat = str(row['Y'])
+                # check if dem format is ok and if vent coordinates are within the DEM
+                downflowcpp.check_dem(long, lat, dem)
+                print("************* DEM ok *********")
 
                 name_folder = path_to_results + '/' + flow_id
+                if os.path.exists(name_folder):
+                    response = input(f"The folder '{name_folder}' already exists. Overwrite? [y/N]: ").strip().lower()
+                    if response == 'y':
+                        shutil.rmtree(name_folder)
+                        os.mkdir(name_folder)
+                        print(f"Folder '{name_folder}' overwritten.")
+                    else:
+                        print("Write a new Name of the vent")
+                        sys.exit("Program stopped by the user.")
+                else:
+                    os.mkdir(name_folder)
                 path_to_folder = name_folder + '/'
-                os.mkdir(name_folder)
+
                 os.chdir(name_folder)
 
             # Returns an asc file with new (filled) DEM
@@ -199,7 +217,7 @@ if __name__ == "__main__":
             # Returns the profile.txt
             filled_dem = 'dem_filled_DH0.001_N1000.asc'
            # filled_dem = "/Users/chevrel/Documents/VIRUNGA/Nyiragongo/dem/nyiragongo_5m_clipped_filled.asc"
-            downflowcpp.get_downflow_losd(long, lat, filled_dem, path_to_downflow, parameter_file_downflow)
+            downflowcpp.get_downflow_losd(long, lat, filled_dem, path_to_downflow, parameter_file_downflow, slope_step)
             print("************************ DOWNFLOW LoSD done *********")
             os.remove(path_to_folder + "/dem_filled_DH0.001_N1000.asc")
 
@@ -431,7 +449,7 @@ if __name__ == "__main__":
     button_browse.pack(side=tk.LEFT)
 
 
-    # Define N and DH and EPSG
+    # Define N, DH, slope_step and EPSG
     N_DH_EPSG_frame = tk.Frame(root)
     N_DH_EPSG_frame.pack(anchor=tk.W)
     # DH
@@ -446,6 +464,12 @@ if __name__ == "__main__":
     entry_n_path_var = tk.StringVar(value=n_path)
     entry_n_path = tk.Entry(N_DH_EPSG_frame, textvariable=entry_n_path_var, width=8)
     entry_n_path.pack(side=tk.LEFT)
+    #  Slope step
+    label_slope_step = tk.Label(N_DH_EPSG_frame, text="Slope step:")
+    label_slope_step.pack(side=tk.LEFT)
+    entry_slope_step_var = tk.StringVar(value=slope_step)
+    entry_slope_step = tk.Entry(N_DH_EPSG_frame, textvariable=entry_slope_step_var, width=8)
+    entry_slope_step.pack(side=tk.LEFT)
     #  EPSG
     label_epsg_code = tk.Label(N_DH_EPSG_frame, text="EPSG:")
     label_epsg_code.pack(side=tk.LEFT)

@@ -51,6 +51,7 @@ if __name__ == "__main__":
     northing = config["downflow"]["northing"]
     DH = config["downflow"]["DH"]
     n_path = config["downflow"]["n_path"]
+    slope_step = config["downflow"]["slope_step"]
     epsg_code =config["downflow"]["epsg_code"]
     path_to_json = config["pyflowgo"]["json"]
     effusion_rate_range = config["pyflowgo"]["effusion_rate_range"]
@@ -107,6 +108,7 @@ if __name__ == "__main__":
         dem = entry_dem_name_var.get()
         DH = entry_DH_var.get()
         n_path = entry_n_path_var.get()
+        slope_step = entry_slope_step_var.get()
         epsg_code = entry_epsg_code.get()
         json_file = entry_json_file_var.get()
         effusion_rates_input = entry_effusion_rates_var.get()
@@ -161,6 +163,7 @@ if __name__ == "__main__":
                     'dem': dem,
                     'DH': DH,
                     'n_path': n_path,
+                    'slope_step': slope_step,
                     'epsg_code': epsg_code,
                     'effusion_rates': effusion_rates
                     }
@@ -177,6 +180,7 @@ if __name__ == "__main__":
                 'dem': dem,
                 'DH': DH,
                 'n_path': n_path,
+                'slope_step': slope_step,
                 'epsg_code': epsg_code,
                 'effusion_rates': effusion_rates
             }
@@ -223,6 +227,7 @@ if __name__ == "__main__":
         csv_vent_file = values['csv_vent_file']
         DH = values['DH']
         n = values['n_path']
+        slope_step = values['slope_step']
         epsg_code = values['epsg_code']
         effusion_rates = values['effusion_rates']
 
@@ -265,7 +270,7 @@ if __name__ == "__main__":
 
             # Returns the profile.txt
             filled_dem = 'dem_filled_DH0.001_N1000.asc'
-            downflowcpp.get_downflow_losd(long, lat, filled_dem, path_to_downflowgo, parameter_file_downflow)
+            downflowcpp.get_downflow_losd(long, lat, filled_dem, path_to_downflowgo, parameter_file_downflow, slope_step)
             print("************************ DOWNFLOW LoSD done *********")
             os.remove(path_to_folder + "/dem_filled_DH0.001_N1000.asc")
 
@@ -558,7 +563,7 @@ if __name__ == "__main__":
     button_browse = tk.Button(dem_frame, text="Browse", command=lambda: get_file_name(entry_dem_name_var))
     button_browse.pack(side=tk.LEFT)
 
-    # Define N and DH and EPSG
+    # Define N, DH, slope_step and EPSG
     N_DH_EPSG_frame = tk.Frame(root)
     N_DH_EPSG_frame.pack(anchor=tk.W)
     # DH
@@ -573,6 +578,12 @@ if __name__ == "__main__":
     entry_n_path_var = tk.StringVar(value=n_path)
     entry_n_path = tk.Entry(N_DH_EPSG_frame, textvariable=entry_n_path_var, width=8)
     entry_n_path.pack(side=tk.LEFT)
+    #  Slope step
+    label_slope_step = tk.Label(N_DH_EPSG_frame, text="Slope step:")
+    label_slope_step.pack(side=tk.LEFT)
+    entry_slope_step_var = tk.StringVar(value=slope_step)
+    entry_slope_step = tk.Entry(N_DH_EPSG_frame, textvariable=entry_slope_step_var, width=8)
+    entry_slope_step.pack(side=tk.LEFT)
     #  EPSG
     label_epsg_code = tk.Label(N_DH_EPSG_frame, text="EPSG:")
     label_epsg_code.pack(side=tk.LEFT)
