@@ -1,13 +1,15 @@
 import os.path
 import csv
 import os
-import downflowgo.txt_to_shape as txt_to_shape
+#import downflowgo.txt_to_shape as txt_to_shape
 import numpy as np
 
 def run_downflow(parameter_file_downflow, path):
     # Run DOWNFLOW
-    os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
-def get_downflow_probabilities(long,lat, dem, path, parameter_file_downflow,DH,n):
+    #os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
+    os.system(os.path.join(path, 'DOWNFLOW', f'DOWNFLOW {parameter_file_downflow}'))
+    #os.system(f'"{os.path.join(path, "DOWNFLOW", "DOWNFLOW")}" {parameter_file_downflow}')
+def get_downflow_probabilities(long, lat, dem, path, parameter_file_downflow, DH, n):
     """    # Run DOWNFLOW and create a raster file 'sim.asc' with the probability of trajectories for a given dem (dem)
     and a given parameter file"""
 
@@ -16,25 +18,27 @@ def get_downflow_probabilities(long,lat, dem, path, parameter_file_downflow,DH,n
     with open(parameter_file_downflow, 'w') as output:
         for line in l:
             if line.startswith('input_DEM'):
-                output.write('input_DEM '+dem+'\n')
+                output.write(f'input_DEM {dem}\n')
             elif line.startswith('Xorigine'):
-                output.write('Xorigine ' + long + '\n')
+                output.write(f'Xorigine {long}\n')
             elif line.startswith('Yorigine'):
-                output.write('Yorigine ' + lat + '\n')
+                output.write(f'Yorigine {lat}\n')
             elif line.startswith('DH'):
-                output.write('DH ' + DH + '\n')
+                output.write(f'DH {DH}\n')
             elif line.startswith('n_path'):
-                output.write('n_path ' + n + '\n')
+                output.write(f'n_path {n}\n')
             elif line.startswith('New_h_grid_name'):
-                output.write('#New_h_grid_name ' + '\n')
+                output.write(f'#New_h_grid_name\n')
             elif line.startswith('write_profile'):
-                output.write('#write_profile ' + '\n')
+                output.write(f'#write_profile\n')
             elif line.startswith('#output_L_grid_name '):
-                output.write('output_L_grid_name sim.asc' + '\n')
+                output.write(f'output_L_grid_name sim.asc\n')
             else:
                 output.write(line)
     # Run DOWNFLOW
-    os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
+    #os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
+    os.system(os.path.join(path, 'DOWNFLOW', f'DOWNFLOW {parameter_file_downflow}'))
+
 def get_downflow_filled_dem(long, lat, dem, path, parameter_file_downflow):
 
     """ Execute DOWNFLOW and create a new DEM where the pit are filled with a thin layer of 1 mm"""
@@ -47,27 +51,28 @@ def get_downflow_filled_dem(long, lat, dem, path, parameter_file_downflow):
     with open(parameter_file_downflow, 'w') as output:
         for line in l:
             if line.startswith('input_DEM'):
-                output.write('input_DEM '+dem+'\n')
+                output.write(f'input_DEM {dem}\n')
             elif line.startswith('Xorigine'):
-                output.write('Xorigine ' + long + '\n')
+                output.write(f'Xorigine {long}\n')
             elif line.startswith('Yorigine'):
-                output.write('Yorigine ' + lat + '\n')
+                output.write(f'Yorigine {lat}\n')
             elif line.startswith('DH'):
-                output.write('DH ' + DH + '\n')
+                output.write(f'DH {DH}\n')
             elif line.startswith('n_path'):
-                output.write('n_path ' + n_path +'\n')
+                output.write(f'n_path {n_path}\n')
             elif line.startswith('output_L_grid_name '):
-                output.write('#output_L_grid_name  sim.asc' + '\n')
+                output.write(f'#output_L_grid_name  sim.asc\n')
             elif line.startswith('#New_h_grid_name'):
-                output.write('New_h_grid_name  dem_filled_DH0.001_N1000.asc' + '\n')
+                output.write(f'New_h_grid_name  dem_filled_DH0.001_N1000.asc\n')
             elif line.startswith('write_profile'):
-                output.write('#write_profile' + '\n')
+                output.write(f'#write_profile\n')
             else:
                 output.write(line)
     # Run DOWNFLOW
-    os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
+    #os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
+    os.system(os.path.join(path, 'DOWNFLOW', f'DOWNFLOW {parameter_file_downflow}'))
 
-def get_downflow_losd(long, lat, filled_dem, path,parameter_file_downflow,slope_step):
+def get_downflow_losd(long, lat, filled_dem, path,parameter_file_downflow, slope_step):
     """ Execute DOWNFLOW and create the profile.txt """
     n_path = "1"
     DH= "0.001"
@@ -77,25 +82,26 @@ def get_downflow_losd(long, lat, filled_dem, path,parameter_file_downflow,slope_
     with open(parameter_file_downflow, 'w') as output:
         for line in l:
             if line.startswith('input_DEM'):
-                output.write('input_DEM '+filled_dem+'\n')
+                output.write(f'input_DEM {filled_dem}\n')
             elif line.startswith('Xorigine'):
-                output.write('Xorigine ' + long + '\n')
+                output.write(f'Xorigine {long}\n')
             elif line.startswith('Yorigine'):
-                output.write('Yorigine ' + lat + '\n')
+                output.write(f'Yorigine {lat}\n')
             elif line.startswith('DH'):
-                output.write('DH ' + DH + '\n')
+                output.write(f'DH {DH}\n')
             elif line.startswith('n_path'):
-                output.write('n_path ' + n_path +'\n')
+                output.write(f'n_path {n_path}\n')
             elif line.startswith('#output_L_grid_name '):
-                output.write('output_L_grid_name sim.asc' + '\n')
+                output.write('output_L_grid_name sim.asc\n')
             elif line.startswith('New_h_grid_name'):
-                output.write('#New_h_grid_name  dem_filled_DH0.001_N1000.asc' + '\n')
+                output.write('#New_h_grid_name  dem_filled_DH0.001_N1000.asc\n')
             elif line.startswith('#write_profile'):
-                output.write('write_profile ' + slope_step + '\n')
+                output.write(f'write_profile {slope_step}\n')
             else:
                 output.write(line)
     # Run DOWNFLOW
-    os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
+    #os.system(path + '/DOWNFLOW/DOWNFLOW ' + parameter_file_downflow)
+    os.system(os.path.join(path, 'DOWNFLOW', f'DOWNFLOW {parameter_file_downflow}'))
 
 
 def check_dem(long, lat, dem):

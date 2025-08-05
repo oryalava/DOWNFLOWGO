@@ -1,4 +1,4 @@
-input_DEM your_path/test/srtm_48_17_utm.asc
+input_DEM /Users/chevrel/Documents/GitHub/DOWNFLOWGO/test/srtm_48_17_utm.asc
 Xorigine 369082.7
 Yorigine 7647204.29
 n_path 10000
@@ -14,4 +14,4 @@ output_L_grid_name sim.asc
 #New_h_grid_name  dem_filled_DH0.001_N1000.asc
 #output_N_grid_name     N.asc           # can be activated only together with   output_Lf_grid_name
 #output_Lf_grid_name    Lf.asc          # can be activated only together with   output_N_grid_name
-#write_profile 
+#write_profile

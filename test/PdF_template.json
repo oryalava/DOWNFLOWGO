@@ -3,6 +3,8 @@
     "slope_file": "profile.txt",
     "dem": "dem",
     "step_size": "10.0",
+    "effusion_rate_init" :3,
+
     "heat_budget_models": {
         "conduction": "yes",
         "convection": "yes",

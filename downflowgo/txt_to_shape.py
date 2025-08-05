@@ -6,6 +6,7 @@ import rasterio
 import numpy as np
 from rasterio.transform import from_origin
 from rasterio.crs import CRS
+from shapely.geometry import mapping, Point
 
 def get_path_shp(losd_file, shp_losd_file, epsg_code):
     # import points from losd_file
@@ -112,6 +113,22 @@ def get_vent_shp(csv_vent_file, shp_vent_file, epsg_code):
     pointShp.close()
     print(f"----------- Vent file is saved as shape file in:'{shp_vent_file}'---------------")
 
+def write_single_vent_shp(flow_id, long, lat, shp_vent_file, epsg_code):
+    schema = {
+        'geometry': 'Point',
+        'properties': [("flow_id", 'str')],
+    }
+
+    with fiona.open(shp_vent_file, mode='w',
+                    driver='ESRI Shapefile',
+                    schema=schema,
+                    crs=f'epsg:{epsg_code}') as shp:
+        point_geom = Point(float(long), float(lat))
+        record = {
+            'geometry': mapping(point_geom),
+            'properties': {'flow_id': flow_id}
+        }
+        shp.write(record)
 def crop_asc_file(sim_asc, cropped_asc_file):
     with open(sim_asc) as file:
         header_lines = [next(file) for _ in range(6)]

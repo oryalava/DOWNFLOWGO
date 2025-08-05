@@ -19,9 +19,9 @@ La Reunion  (Chevrel et al., 2018, 2022; Harris et al., 2016, 2019; Peltier et a
 and on other planets (see also next session): Mars (Flynn et al., 2022; Rowland et al., 2004) Mercury (Vetere et al. 2017) ; 
 Moon (Lev et al. 2021) and Venus Flynn et al. (2023). 
 
-To use this package you must cite [Chevrel et al. 2022](https://doi.org/10.30909/vol.05.02.313334), [Favalli 2005](https://doi.org/10.1029/2004gl021718) and [Harris and Rowland 2001](https://doi.org/10.1007/s004450000120):
+To use this package you must cite these 3 publications: [Chevrel et al. 2022](https://doi.org/10.30909/vol.05.02.313334), [Favalli 2005](https://doi.org/10.1029/2004gl021718) and [Harris and Rowland 2001](https://doi.org/10.1007/s004450000120):
 
-**Chevrel MO, Harris A, Peltier A, Villeneuve N, Coppola D, Gouhier M, Drenne S. (2022) 
+Chevrel MO, Harris A, Peltier A, Villeneuve N, Coppola D, Gouhier M, Drenne S. (2022) 
 Volcanic crisis management supported by near real time lava flow hazard assessment at Piton de la Fournaise, 
 Volcanica 5(2), pp. 313–334. https://doi.org/10.30909/vol.05.02.313334
 
@@ -33,40 +33,24 @@ issn: 0094- 8276. https://doi.org/10.1029/2004gl021718.**
 
 
 ## Description of the package 
-This folder includes :
+This package includes :
 
-1) a folder **DOWNFLOW** containing the code in c++ of DOWNFLOW [Favalli et al. 2005](https://doi.org/10.1029/2004gl021718) 
-provided by Massimiliano Favalli (hopefully soon available on github).
-
-To install **DOWNFLOW** follow the instruction in the **DOWNFLOW** folder: **README_DOWNFLOW.md** 
-
-
-2) the following scripts :
-
-- scripts to execute :
-
-``` main_downflow.py  ``` (or ``` main_downflow_GUI.py  ```)  to run **DOWNFLOW** alone.
-
- ``` main_downflowgo.py  ```(or ``` main_downflowgo_GUI.py  ```)   to run in sequence **DOWNFLOW + FLOWGO**. 
+1) a folder **downflowgo** containing various functions ```downflowcpp.py``` ```mapping.py``` ```txt_to_shape.py```
+and  another folder **DOWNFLOW** with the code in c++ of DOWNFLOW ```downflow.cpp```[Favalli et al. 2005](https://doi.org/10.1029/2004gl021718) 
+provided by Massimiliano Favalli (hopefully soon available on github). To install **DOWNFLOW** you must follow the instruction in the **DOWNFLOW** folder: **README_DOWNFLOW.md** 
 
 
-- scripts for various functions amoung which the important ones are:
-```
-  downflowcpp.py
-  mapping.py
-  txt_to_shape.py
-  ```
+2) the main script to run DOWNFLOW: ``` main_downflowgo.py   ```   
 
-3) the configuration file, the requirements and environment
+3) examples of configuration files, the requirements and environment
 
 ## Actions
 
-### 1) Python packages to install before running
+### 1) Install the Python packages before running
 
-To run these scripts, you will need :
+You will need :
 
 --> Built-in Python 3.8 Packages (included in the standard installation): math, os, sys
-
 
 --> install the following environment:
 
@@ -76,12 +60,16 @@ or requirements :
 
 ```pip install -r requirements.txt```
 
---> install the [PyFLOwGO](https://github.com/pyflowgo/pyflowgo.git) library from github:
+--> install the [PyFLOWGO](https://github.com/pyflowgo/pyflowgo.git) library from github:
 
 ```pip install git+https://github.com/pyflowgo/pyflowgo.git   ```
 
+### 2) Install **DOWNFLOW**
+--> Install **DOWNFLOW** by following the instruction in the **DOWNFLOW** folder: **README_DOWNFLOW.md** 
 
-### 2) Requiered file types and configuration
+
+
+### 3) Requiered file types and configuration
 
 1) The DEM must be  ```.asc ``` format with UTM in WGS84, with the following header (see example /downflowgo/DOWNFLOW/reunion_srtm_25m_utm.asc) :
 ```
@@ -93,68 +81,66 @@ cellsize     5.00
 NODATA_value  0
  ```
 
-2) The configuration file: ```config_downflowgo.ini```:
-Update the paths and all parameters needed to run the code with your configuration.
+2) The configuration file: ```config_downflowgo.ini``` looks as follow (update the paths and all parameters needed to run the code with your configuration):
 ```
-[paths]
-eruptions_folder =/your_path/DOWNFLOWGO/test
-dem =/your_path/downflowgo/DOWNFLOW/reunion_srtm_25m_utm.asc
-name_vent = Vent_1
+[config_general]
+#yes or short or no
+use_gui = yes
+#Chose the mode either downflow or downflowgo
+mode = downflowgo
+mapping_display = yes
 
-#For DOWNFLOW:
+[paths]
+eruptions_folder = /Users/yourfolder
+delete_existing_results = yes
+dem = /Users/yourDEM.asc
+#csv_vent_file is 0 it will take the UTM coordinate below, if path to a file it will take the file
+csv_vent_file = 0
+
 [downflow]
-# vent coordinate by default
+name_vent = Vent_1
 easting = 369082.7
 northing = 7647204.29
-
-# La Reunion: DH= 2; n_path = 10000
-DH= 2
+dh = 2
 n_path = 10000
+slope_step = 10
+#EPSG_code are usually La Réunion 32740, Galapagos 32715; Iceland 32627;
 epsg_code = 32740
-# La Reunion: 32740; Hawaii: ; Galapagos:
 
-#For PyFLOWGO:
 [pyflowgo]
-json = /your_path/DOWNFLOWGO/test/PdF_template.json
-effusion_rate_range = 5,25,5
+json = ./test/PdF_template.json
+#effusion_rates_input should be either O, or a number or 3 numbers representing starting, ending and step
+effusion_rates_input = 5,20,5
 
-#For Mapping:
 [mapping]
-img_tif_map_background = /your_path/test/HS_reunion_25m.tif
-
-monitoring_network = /your_path/test/example_monitoring_stations.shp
-# this is a point geometryn if none = 0
-lava_flow_outline = /your_path/test/example_lavaflow_outline.shp
-# this is a polygone geometry # if none = 0
-
-#For image credits and notes:
-[notes]
-# this is a polygone geometry
-logo = /your_path/your_logo.png
-# Credit for background image
-source_img_tif_map_background =  © credit 
+img_tif_map_background_path = /Users/yourimage.tif
+#lava_flow_outline_path must be point geometry
+monitoring_network_path = 0
+#lava_flow_outline_path must be polygone geometry
+lava_flow_outline_path = 0
+logo_path = 0
+source_img_tif_map_background =©credit
 # Set motion about data, e.g 'UNVERIFIED DATA - NOT FOR DISTRIBUTION' or 'DONNEES NON VALIDES - NE PAS DIFFUSER' or 0 for nothing
-unverified_data = UNVERIFIED DATA - NOT FOR DISTRIBUTION
+unverified_data = DONNEES NON VALIDES - NE PAS DIFFUSER
 
 [language]
-# Set the language to EN (English) or FR (French)
-language = EN
+language = FR
 
 ```
 3) The ```.json``` file for PyFLOWGO:
 For more information go to ```https://github.com/pyflowgo/pyflowgo.git ```
 
-### 3) Run the GUIS
+### 3) Run the code:
 
-To run DOWNFLOW :
- ``` python main_downflow_GUI.py config_downflowgo.ini ```
+To run DOWNFLOWGO from your terminal :
+ ``` python main_downflowgo.py config_downflowgo.ini ```
 
-To run DOWNFLOWGO :
- ``` python main_downflowgo_GUI.py config_downflowgo.ini ```
+You can choose in the configuration file whether you want a GUI and if you want to run DOWNFLOW or DOWNFLOWGO
+You can laso choose to display the map or no (if not it will be saved anyway in the folder)
 
 ## Output files
 
-In the dedicated folder define in 2.1 (```eruptions_folder```) you will find:
+In the dedicated folder define in configuration_file (```eruptions_folder```) you will find:
 * A folder named **results_flowgo** with all the results from pyflowgo and associated plots
 * The map of the simulation that uses the above layers: ```map.png```
 * A new folder named **map** that contains the following files so you can create your own map with any GIS system:

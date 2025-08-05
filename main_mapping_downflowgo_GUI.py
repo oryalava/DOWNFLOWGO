@@ -19,7 +19,7 @@ def open_create_map_window(root):
 
     # Check argument 
     if len(sys.argv) < 2:
-        print("Usage:  python main_downflowgo_GUI.py config_downflowgo.ini")
+        print("Usage:  python main_mapping_downflowgo_GUI.py config_downflowgo.ini")
         sys.exit(1)
     config_file = sys.argv[1]
 
@@ -40,13 +40,13 @@ def open_create_map_window(root):
     language = config["language"]["language"]
     path_to_eruptions = config["paths"]["eruptions_folder"]
     dem = config["paths"]["dem"]
-    name_vent = config["paths"]["name_vent"]
-    img_tif_map_background = config["mapping"]["img_tif_map_background"]
-    monitoring_network_path = config["mapping"]["monitoring_network"]
-    lava_flow_outline_path = config["mapping"]["lava_flow_outline"]
-    logo_path = config["notes"]["logo"]
-    source_img_tif_map_background = config["notes"]["source_img_tif_map_background"]
-    unverified_data = config["notes"]["unverified_data"]
+    name_vent = config["downflow"]["name_vent"]
+    img_tif_map_background = config["mapping"]["img_tif_map_background_path"]
+    monitoring_network_path = config["mapping"]["monitoring_network_path"]
+    lava_flow_outline_path = config["mapping"]["lava_flow_outline_path"]
+    logo_path = config["mapping"]["logo_path"]
+    source_img_tif_map_background = config["mapping"]["source_img_tif_map_background"]
+    unverified_data = config["mapping"]["unverified_data"]
 
     entry_path_to_results_var = tk.StringVar(value=path_to_eruptions)
 
@@ -121,7 +121,7 @@ def open_create_map_window(root):
 
     def create_map():
         mapping.create_map(entry_path_to_results_var.get(), dem, flow_id, map_layers, get_sim_layers(),
-                           mode='downflowgo', language=language)
+                           mode='downflowgo', language=language, display = 'yes')
         map_window.destroy()
 
     button_frame = tk.Frame(map_window)

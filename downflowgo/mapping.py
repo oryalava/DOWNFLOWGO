@@ -12,7 +12,7 @@ import os
 import datetime
 
 
-def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, language):
+def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, language, display):
     """
     Create a map for either 'downflow' or 'downflowgo' based on the mode provided and in English or in French
 
@@ -38,22 +38,27 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, langu
     logo = map_layers['logo_path']
     unverified_data = map_layers['unverified_data']
 
-    run_outs_path = None
+
     if mode == 'downflowgo':
         run_outs_path = sim_layers['shp_runouts']
+    else:
+        run_outs_path = None
 
     # Create the map figure
     fig, ax = plt.subplots(figsize=(8, 7))
 
     # Load the TIFF image, convert it to RGB and read
-    tiff_image = Image.open(tiff_file)
-    tiff_image_rgb = tiff_image.convert('RGB')
-    with rasterio.open(tiff_file) as src:
-        tiff_image = src.read(1)
-        extent = src.bounds
 
-    # Display the TIFF image as the background
-    tif = ax.imshow(tiff_image_rgb, extent=(extent.left, extent.right, extent.bottom, extent.top))
+    if not tiff_file or tiff_file == "0":
+        pass  # pass if no value or "0"
+    else:
+        tiff_image = Image.open(tiff_file)
+        tiff_image_rgb = tiff_image.convert('RGB')
+        with rasterio.open(tiff_file) as src:
+            tiff_image = src.read(1)
+            extent = src.bounds
+        # Display the TIFF image as the background
+        tif = ax.imshow(tiff_image_rgb, extent=(extent.left, extent.right, extent.bottom, extent.top))
 
     # ------------ plot simulation .tiff ----------
 
@@ -330,9 +335,10 @@ def create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode, langu
             0.01, 0.01, source_img_tif_map_background,
             transform=ax.transAxes,
             fontsize=8, color='k',
-            ha='left', va='bottom' )
-
-    plt.savefig(path_to_folder + '/map_' + flow_id + '.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    plt.close()
+            ha='left', va='bottom')
+    plt.savefig(os.path.join(path_to_folder, f"map_{flow_id}.png"), dpi=300, bbox_inches='tight')
+    print('Map created')
+    if display == 'yes':
+        plt.show()
+        plt.close()
     
