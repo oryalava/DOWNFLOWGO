@@ -92,7 +92,6 @@ if __name__ == "__main__":
         csv_vent_file = os.path.join(path_to_eruptions, 'csv_vent_file.csv')
         if os.path.exists(csv_vent_file):
             os.remove(csv_vent_file)
-
         with open(csv_vent_file, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter=';')
             writer.writerow(['flow_id', 'X', 'Y'])
@@ -101,10 +100,10 @@ if __name__ == "__main__":
     else:
         # If an absolute path is given in the config file
         csv_vent_file = os.path.abspath(csv_vent_file)
+        print(f"[INFO] Csv file used : {csv_vent_file}")
         if not os.path.exists(csv_vent_file):
             raise FileNotFoundError(f"[ERREUR] File CSV do not exist : {csv_vent_file}")
 
-    print("csv_vent_file",csv_vent_file)
 
     with open(csv_vent_file, 'r') as csvfile:
         csvreader = csv.DictReader(csvfile, delimiter=';')
@@ -125,22 +124,22 @@ if __name__ == "__main__":
             # Check if dem format is ok and if vent coordinates are within the DEM
             downflowcpp.check_dem(long, lat, dem)
             print("************* DEM ok *********")
-            
+
             # Returns an asc file with new (filled) DEM
             downflowcpp.get_downflow_filled_dem(long, lat, dem, path_to_downflow, parameter_file_downflow)
             print("************************ DOWNFLOW filled DEM done *********")
-            
+
             # Returns the profile.txt
             filled_dem = 'dem_filled_DH0.001_N1000.asc'
             downflowcpp.get_downflow_losd(long, lat, filled_dem, path_to_downflow, parameter_file_downflow, slope_step)
-            
+
             print("************************ DOWNFLOW LoSD done *********")
             os.remove(os.path.join(path_to_folder, "dem_filled_DH0.001_N1000.asc"))
-            
+
             # Returns an asc file with the lava flow path probabilities using the given DH and n
             downflowcpp.get_downflow_probabilities(long, lat, dem, path_to_downflow, parameter_file_downflow, DH, n)
             print("******************* DOWNFLOW probability executed: sim.asc created **************************")
-            
+
             # create map folder with layers in it
             map_folder = os.path.join(path_to_folder, "map")
             os.mkdir(map_folder)
@@ -149,7 +148,7 @@ if __name__ == "__main__":
             txt_to_shape.crop_and_convert_to_tif(sim_asc, cropped_geotiff_file, epsg_code)
             os.remove(sim_asc)
             print('*********** simulation paths saved in:', cropped_geotiff_file, '*********')
-            
+
             losd_file = os.path.join(path_to_folder, "profile_00000.txt")
             shp_losd_file = os.path.join(map_folder, f'losd_{flow_id}.shp')
             txt_to_shape.get_path_shp(losd_file, shp_losd_file, epsg_code)
@@ -157,9 +156,9 @@ if __name__ == "__main__":
             #txt_to_shape.get_vent_shp(csv_vent_file, shp_vent_file, epsg_code)
             txt_to_shape.write_single_vent_shp(flow_id, long, lat, shp_vent_file, epsg_code)
 
-            
+
             print("**************** End of DOWNFLOW ", flow_id, '*********')
-            
+
             if mode == "downflow":
                 # Define the map_layers dictionary initially
                 sim_layers = {
@@ -170,10 +169,10 @@ if __name__ == "__main__":
                 }
                 mapping.create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode="downflow",
                                    language=language, display=mapping_display)
-            
+
             if mode == "downflowgo":
                 print("************************ Start FLOWGO for FLOW ID =", flow_id, '*********')
-            
+
                 json_input = config["pyflowgo"]["json"]
                 effusion_rates_input = config["pyflowgo"]["effusion_rates_input"]
                 path_to_flowgo_results = os.path.join(path_to_folder, 'results_flowgo')
@@ -183,13 +182,12 @@ if __name__ == "__main__":
                 # get losd from DOWNFLOW and clean it if necessary
                 losd_file = os.path.join(path_to_folder, "profile_00000.txt")
                 slope_file = losd_file
-                df = pd.read_csv(slope_file, delim_whitespace=True)
+                df = pd.read_csv(slope_file, sep=r'\s+')
                 df = df.dropna()
                 df_cleaned = df[df['L'].diff().fillna(1) > 0]
                 assert all(df_cleaned['L'].diff().dropna() > 0), "L is still not strictly increasing"
                 df_cleaned.to_csv(slope_file, sep="\t", index=False)
-                
-                #check effusion rates
+
                 # Parse effusion rates
                 effusion_rates_input = config["pyflowgo"]["effusion_rates_input"].strip()
 
@@ -230,7 +228,6 @@ if __name__ == "__main__":
                     with open(json_file_new, "w") as data_file:
                         json.dump(read_json_data, data_file)
 
-                   
                     flowgo = run_flowgo.RunFlowgo()
                     flowgo.run(json_file_new, path_to_flowgo_results)
                     filename = flowgo.get_file_name_results(path_to_flowgo_results, json_file_new)
@@ -256,7 +253,7 @@ if __name__ == "__main__":
                 txt_to_shape.get_runouts_shp(run_outs_file, shp_runouts, epsg_code)
                 # move(losd_file)
                 os.rename(losd_file, os.path.join(map_folder, f'losd_{flow_id}_profile_00000.txt'))
-            
+
                 print('*********** FLOWGO executed and results stored in:', path_to_flowgo_results, '***********')
 
                 sim_layers = {
@@ -270,7 +267,7 @@ if __name__ == "__main__":
                 # Make the map
                 mapping.create_map(path_to_folder, dem, flow_id, map_layers, sim_layers, mode="downflowgo",
                                    language=language, display=mapping_display)
-                        
+
             print("************************************** THE END *************************************")
     # End the timer
     end_time = time.time()
