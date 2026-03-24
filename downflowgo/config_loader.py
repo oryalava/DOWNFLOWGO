@@ -120,7 +120,7 @@ class Config:
         else:  # use_GUI == 'no'
             return self.config
 
-        modified_config = editor_configuration_file_downflowgo.launch_editor(config_file, gui_option=gui_option)
+        modified_config = editor_configuration_file_downflowgo.launch_editor(config_file=config_file, grid_mode=self.grid_mode, gui_option=gui_option)
         # Reload the updated config if a new one was saved
         self.config.read(modified_config)
         config_file = modified_config  # Update path to point to new config
