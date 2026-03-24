@@ -42,7 +42,7 @@ provided by Massimiliano Favalli (hopefully soon available on github). To instal
 
 2) the main script to run DOWNFLOW: ``` main_downflowgo.py   ```   
 
-3)  an "assets" folder with examples of inputs and outputs, 
+3)  an "data" folder with examples of inputs and outputs, 
 
 5) the requirements and environment
 
@@ -86,7 +86,7 @@ cellsize     5.00
 NODATA_value  0
  ```
 
-2) The configuration file: ```config_downflowgo.ini``` looks as follow (update the paths and all parameters needed to run the code with your configuration):
+2) The configuration file: ```config_downflowgo.ini``` in config/ looks as follow (update the paths and all parameters needed to run the code with your configuration):
 ```
 [config_general]
 #yes or short or no
@@ -98,9 +98,9 @@ mapping_display = yes
 
 
 [paths]
-eruptions_folder = ./assets/outputs
+eruptions_folder = ./data/outputs
 delete_existing_results = yes
-dem = ./assets/input/DEM/srtm_48_17_utm.asc
+dem = ./data/inputs/DEM/srtm_48_17_utm.asc
 #csv_vent_file is 0 it will take the UTM coordinate below, if path to a file it will take the file
 csv_vent_file = 0
 
@@ -116,22 +116,22 @@ epsg_code = 32740
 
 
 [pyflowgo]
-json = ./assets/input/PdF_template.json
-#effusion_rates_input should be either O, or a number or 3 numbers representing starting, ending and step
-effusion_rates_input = 5,30,5
+json = ./data/inputs/PdF_template.json
+#effusion_rates_inputs should be either O, or a number or 3 numbers representing starting, ending and step
+effusion_rates_inputs = 5,30,5
 
 [grid_parameters]
 ventgrid_size = 100
 ventgrid_resolution = 50
-grid_csv = ./assets/output/csv_vent_file.csv
+grid_csv = ./data/output/csv_vent_file.csv
 dem_resolution = 90
 
 [mapping]
-img_tif_map_background_path = ./assets/input/map_background/HS_srtm_48_17_utm.tif
+img_tif_map_background_path = ./data/inputs/map_background/HS_srtm_48_17_utm.tif
 #lava_flow_outline_path must be point geometry
-monitoring_network_path = ./assets/input/monitoring_stations/example_monitoring_stations.shp
+monitoring_network_path = ./data/inputs/monitoring_stations/example_monitoring_stations.shp
 #lava_flow_outline_path must be polygone geometry
-lava_flow_outline_path = ./assets/input/lavaflow_outline/example_lavaflow_outline.shp
+lava_flow_outline_path = ./data/inputs/lavaflow_outline/example_lavaflow_outline.shp
 logo_path = 0
 source_img_tif_map_background =©credit
 # Set motion about data, e.g 'UNVERIFIED DATA - NOT FOR DISTRIBUTION' or 'DONNEES NON VALIDES - NE PAS DIFFUSER' or 0 for nothing
@@ -147,7 +147,7 @@ For more information go to ```https://github.com/pyflowgo/pyflowgo.git ```
 ### 3) Run the code:
 
 To run DOWNFLOWGO from your terminal :
- ``` python main_downflowgo.py ./assets/input/config_downflowgo.ini ```
+ ``` python main_downflowgo.py ./config/config_downflowgo.ini ```
 
 You can choose in the configuration file whether you want a GUI and if you want to run DOWNFLOW or DOWNFLOWGO.
 You can also choose to display the map or no (if not it will be saved anyway in the folder)
