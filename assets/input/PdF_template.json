@@ -75,8 +75,8 @@
         "depth": "0.95",
         "gravity": "9.8",
         "max_channel_length": "16000.0",
-        "slope_smoothing_active": "0",
-        "slope_smoothing_number_of_points": "10",
+        "slope_smoothing_active": false,
+        "slope_smoothing_number_of_points": "1",
         "width": "4"
     },
     "thermal_parameters": {
