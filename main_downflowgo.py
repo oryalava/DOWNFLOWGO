@@ -1,6 +1,6 @@
 import sys
 import time
-# Tristan 22/09/2025
+
 import downflowgo.datamanager as datamanager
 from downflowgo.all_for_grid import grid_maker_reader
 from downflowgo.config_loader import Config

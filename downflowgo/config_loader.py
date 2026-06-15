@@ -8,7 +8,7 @@ class Config:
     def __init__(self):
         self.abspath = os.path.abspath('')
         self.path_to_downflow = os.path.join(self.abspath, 'downflowgo')
-        self.parameter_file_downflow = os.path.join(self.path_to_downflow, 'DOWNFLOW', 'parameters_range.txt')
+        #self.parameter_file_downflow = os.path.join(self.path_to_downflow, 'DOWNFLOW', 'parameters_range.txt')
         self.from_vent = False
 
         # [config_general]
@@ -28,6 +28,7 @@ class Config:
         self.name_vent = None
         self.easting = None
         self.northing = None
+        self.parameters_file_downflow = None
         self.dh = None
         self.n_path = None
         self.slope_step = None
@@ -72,6 +73,9 @@ class Config:
         if self.path_to_eruptions is None:
             raise ValueError("path_to_eruptions undefined")
 
+        if self.parameters_file_downflow is None:
+            raise ValueError("parameters_file_downflow undefined")
+
         if self.dem is None:
             raise ValueError("dem path undefined")
 
@@ -87,6 +91,7 @@ class Config:
         self.path_to_eruptions = self._make_absolute(self.path_to_eruptions)
         self.dem = self._make_absolute(self.dem)
         self.csv_vent_file = self._make_absolute(self.csv_vent_file)
+        self.parameters_file_downflow = self._make_absolute(self.parameters_file_downflow)
         if self.grid_mode == "yes":
             self.grid_csv = self._make_absolute(self.grid_csv)
         self.json_input = self._make_absolute(self.json_input)
@@ -120,7 +125,7 @@ class Config:
         else:  # use_GUI == 'no'
             return self.config
 
-        modified_config = editor_configuration_file_downflowgo.launch_editor(config_file, gui_option=gui_option)
+        modified_config = editor_configuration_file_downflowgo.launch_editor(config_file, gui_option=gui_option, grid_mode=grid_mode)
         # Reload the updated config if a new one was saved
         self.config.read(modified_config)
         config_file = modified_config  # Update path to point to new config
@@ -152,7 +157,8 @@ class Config:
 
     def set_path_to_grid_folder(self) -> str:
         return os.path.join(self.path_to_eruptions, self.name_vent)
-
+    def set_parameters_file_downflow(self):
+        return self._make_absolute(self.config["downflow"]["parameters_file_downflow"])
     def set_json_input(self):
         return self._make_absolute(self.config["pyflowgo"]["json"])
 
@@ -211,6 +217,8 @@ class Config:
         self.n = self.config["downflow"]["n_path"]
         self.slope_step = self.config["downflow"]["slope_step"]
         self.epsg_code = self.config["downflow"]["epsg_code"]
+        self.parameters_file_downflow = self.config["downflow"]["parameters_file_downflow"]  # *
+        self.parameters_file_downflow = self._make_absolute(self.parameters_file_downflow)  # *
 
         # Paths
         self.path_to_eruptions = self.config["paths"]["eruptions_folder"]  # *
@@ -313,7 +321,7 @@ class Config:
 
     def summary(self) -> dict:
         return {"path_to_downflow": self.path_to_downflow,
-                "parameter_file_downflow": self.parameter_file_downflow,
+                "parameters_file_downflow": self.parameters_file_downflow,
                 "use_gui": self.use_gui,
                 "grid_mode": self.grid_mode,
                 "mode": self.mode,

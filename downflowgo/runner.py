@@ -365,14 +365,14 @@ class Runner:
         # Run downflow in 3 steps
         # 1) Returns an asc file with new (filled) DEM
         downflowcpp.get_downflow_filled_dem(long, lat, self.config.dem,
-                                            self.config.path_to_downflow, self.config.parameter_file_downflow)
+                                            self.config.path_to_downflow, self.config.parameters_file_downflow)
         print("************************ DOWNFLOW filled DEM done *********")
 
         # 2) Returns the profile.txt obtained from filled DEM
         filled_dem = 'dem_filled_DH0.001_N1000.asc'
         filled_dem = os.path.join(self.path_to_folder, filled_dem)
         downflowcpp.get_downflow_losd(long, lat, filled_dem, self.config.path_to_downflow,
-                                      self.config.parameter_file_downflow, self.config.slope_step)
+                                      self.config.parameters_file_downflow, self.config.slope_step)
 
         if self.config.grid_mode == 'yes':
             # if grid mode the profile is also saved as a raster (cropped to dimensions),
@@ -397,7 +397,7 @@ class Runner:
 
         # 3) Returns a raster (cropped to dimensions) with the lava flow path probabilities using the given DH and n
         downflowcpp.get_downflow_probabilities(long, lat, self.config.dem, self.config.path_to_downflow,
-                                               self.config.parameter_file_downflow,
+                                               self.config.parameters_file_downflow,
                                                self.config.DH,
                                                self.config.n)
 

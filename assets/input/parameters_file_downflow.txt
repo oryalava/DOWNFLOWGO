@@ -1,6 +1,6 @@
-input_DEM /Users/chevrel/Documents/LA_REUNION/DEM/MNT_LiDAR_IGN_2025/MNT_LiDAR_IGN_2025_5m.asc
-Xorigine 372747
-Yorigine 7648128
+input_DEM /Users/chevrel/Documents/LA_REUNION/DEM/Clip_DEM_update_oct2010_aug2015_nosea.asc
+Xorigine 371365
+Yorigine 7646021
 n_path 10000
 DH 2
 MaxPathLength 100000000
