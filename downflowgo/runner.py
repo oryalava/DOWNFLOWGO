@@ -81,223 +81,43 @@ class Runner:
         sim_layers["shp_runouts"] = shp_runouts
         sim_layers["shp_30pct"] = shp_30pct
 
-    def run_flowgo_gridmode(self, path_to_folder: str, map_folder: str, pathfinder_slope_file_shp: str, grid_dict: dict, lon_intersect,
-                            lat_intersect, sim_multi_n):
-        """ Run FLOWGO with gridmode, for the slope that passes through the edge coordianates
-         and make the map for donwflowgo results"""
-        if self.config.mode == "downflowgo":
-            # initialize headers for FLOWGO data
-            eff_dict = {'X': [], 'Y': []}
-            start = self.config.effusion_rates_tuple["first_eff_rate"]
-            stop = self.config.effusion_rates_tuple["last_eff_rate"]
-            step = self.config.effusion_rates_tuple["step_eff_rate"]
-
-            for eff in range(start, stop + step, step):
-                eff_dict[f'Run_out_{eff:.1f}'] = []
-                eff_dict[f'X_run_out_{eff:.1f}'] = []
-                eff_dict[f'Y_run_out_{eff:.1f}'] = []
-                eff_dict[f'X_init_{eff:.1f}'] = []
-                eff_dict[f'Y_init_{eff:.1f}'] = []
-
-            # find which paths go through edge coordinate
-            # n = 0
-            # Look for all the values in the grid dict (amoung all the n1 raster)
-            # to find the X and Y that match X and Y edge
-            for value in grid_dict.values():
-                Y = value['Coords'][0]
-                X = value['Coords'][1]
-                flow_id = f'{X}_{Y}'
-                raster = value['Raster']
-                latitude = value["Latitude"]
-                longitude = value['Longitude']
-
-                # #### DEBUGGING #####
-                # lon_diff = np.amin(abs(lon_intersect-longitude))
-                # lat_diff = np.amin(abs(lat_intersect-latitude))
-                # if lon_diff < dem_resolution and lat_diff < dem_resolution:
-                #     print(f'{n}. lat_diff:{lat_diff:.1f}  lon_diff:{lon_diff:.1f}')
-                #     n += 1
-
-                try:
-                    row = np.where(latitude == lat_intersect)[0][0]
-                except IndexError:
-                    # comment on this step : Find the closest point
-                    lat_diff = np.amin(abs(lat_intersect - latitude))
-                    if lat_diff < 0.001:
-                        row = np.argmin(latitude == lat_intersect)
-                    else:
-                        # os.remove(f'{path_to_results}{flow_id}/profile_{flow_id}_{X}_{Y}.txt')
-                        continue
-
-                try:
-                    col = np.where(longitude == lon_intersect)[0][0]
-                except IndexError:
-                    # comment on this step
-                    lon_diff = np.amin(abs(lon_intersect - longitude))
-                    if lon_diff < 0.001:
-                        col = np.argmin(abs(lon_intersect - longitude))
-                    else:
-                        # os.remove(f'{path_to_results}{flow_id}/profile_{flow_id}_{X}_{Y}.txt')
-                        continue
-                prob = raster[row, col]
-                if prob != 0:
-                    # if the probility of this X and Y are the same as X and Y edge and not zero, we run flowgo
-                    # 1) Build the path to the vent folder
-                    path_to_flowgo_results = os.path.join(path_to_folder, f"vents_{flow_id}")
-
-                    # Create the directory if it doesn't exist
-                    os.makedirs(path_to_flowgo_results, exist_ok=True)
-
-                    # Move the profile file into the vent folder
-                    old_profile = os.path.join(path_to_folder, f"profile_{flow_id}.txt")
-                    new_profile = os.path.join(path_to_flowgo_results, f"profile_{flow_id}.txt")
-
-                    if os.path.exists(old_profile):
-                        os.makedirs(path_to_flowgo_results, exist_ok=True)
-                        shutil.move(old_profile, new_profile)  # safer than os.rename for cross-filesystem moves
-                    else:
-                        print(f"Profile file not found: {old_profile}")
-                    # Define slopefile and output_file paths
-                    # slopefile = new_profile
-                    # output_file = os.path.join(path_to_flowgo_results, f"json_{X}_{Y}.json")
-                    # sys.exit()
-                    simulation_flowgo = run_flowgo_effusion_rate_array.StartFlowgo()
-                    json_file_new = os.path.join(path_to_flowgo_results, f'parameters_{flow_id}.json')
-                    simulation_flowgo.make_new_json(self.config.json_input, flow_id, new_profile, json_file_new)
-
-                    # Run FLOWGO for several effusion rates
-                    simulation_flowgo.run_flowgo_effusion_rate_array(json_file_new, path_to_flowgo_results,
-                                                                     new_profile,
-                                                                     self.config.effusion_rates_tuple)
-
-                    # flowgo.run_flowgo_effusion_rate_array(output_file, path_to_flowgo, slopefile, {'first_eff_rate': start, 'last_eff_rate': stop, 'step_eff_rate': step}, lava_name=flow_id)
-
-                    run_outs_file = os.path.join(path_to_flowgo_results, f'run_outs_{flow_id}.csv')
-                    df = pd.read_csv(run_outs_file)
-                    for i in range(len(df)):
-                        eff = df['Effusion_rate'][i]
-                        eff_dict[f'Run_out_{eff:.1f}'].append(df['Distance_run_out'][i])
-                        eff_dict[f'X_run_out_{eff:.1f}'].append(df['X_run_out'][i])
-                        eff_dict[f'Y_run_out_{eff:.1f}'].append(df['Y_run_out'][i])
-                        eff_dict[f'X_init_{eff:.1f}'].append(df['X_init'][i])
-                        eff_dict[f'Y_init_{eff:.1f}'].append(df['Y_init'][i])
-
-                    eff_dict['X'].append(X)
-                    eff_dict['Y'].append(Y)
-
-                else:
-                    pass
-                    # os.remove(f'{path_to_results}{flow_id}/profile_{flow_id}_{X}_{Y}.txt')
-
-            # save the output into one single run_outs file
-            output_csv = os.path.join(path_to_folder, 'run_outs.csv')
-            new_df = pd.DataFrame.from_dict(eff_dict)
-            new_df.to_csv(output_csv, index=False)
-            # Calculates the average runouts of all the paths along the pathfinder_slope_file_shp
-            average_run_outs = all_for_grid.get_average_run_outs(path_to_folder, self.config.name_vent, start, stop,
-                                                                 step, pathfinder_slope_file_shp)
-
-            effusion_rate_array = np.arange(start, stop + step, step)
-
-        # Make the map layers and the map
-        shp_vent_file = os.path.join(map_folder, f'vents_{self.config.name_vent}.shp')
-        txt_to_shape.get_vent_shp(self.config.csv_vent_file, shp_vent_file, self.config.epsg_code)
-        if self.config.mode == "downflowgo":
-            shp_runouts = os.path.join(map_folder, f'runouts_{self.config.name_vent}.shp')
-            txt_to_shape.get_runouts_grid_shp(average_run_outs, shp_runouts, self.config.epsg_code)
-            shp_vents_runouts = os.path.join(map_folder, f'vents_runouts_{self.config.name_vent}.shp')
-            txt_to_shape.get_vents_runouts_shp(output_csv, shp_vents_runouts, self.config.epsg_code)
-            shp_iqr = os.path.join(map_folder, f'interquartiles_{self.config.name_vent}.shp')
-            txt_to_shape.cut_lines_losd(pathfinder_slope_file_shp, shp_runouts, shp_iqr)
-
-            sim_layers = {
-                'shp_losd_file': pathfinder_slope_file_shp,
-                'shp_vent_file': shp_vent_file,
-                'cropped_geotiff_file': sim_multi_n,
-                'shp_runouts': shp_runouts,
-                'shp_iqr': shp_iqr
-            }
-        else:
-            sim_layers = {
-                'shp_losd_file': pathfinder_slope_file_shp,
-                'shp_vent_file': shp_vent_file,
-                'cropped_geotiff_file': sim_multi_n
-            }
-        return sim_layers
-
-    def run_gridmode_origin(self, grid):
-        """
-        Run grid algorithm
-        Pathstacker + Pathfinder
-        et run flowgo_grid mode
-        """
-
-        # 1) first stack all the rasters and obtain a mastergrid with all the multi path into one file and
-        # stack all the raster LoSD into a dictionnary containing all the raster n1_sim.tif (grid_dict)
-        mastergrid, lon_X, lat_Y, grid_dict = all_for_grid.path_stacker_helper(grid,
-                                                                               self.config.name_vent,
-                                                                               self.path_to_folder,
-                                                                               self.config.dem_resolution,
-                                                                               self.config.epsg_code)
-
-        sim_Losd_n1 = os.path.join(self.path_to_folder, f'{self.config.name_vent}_ventgrid_sim_n1.tif')
-        sim_multi_n = os.path.join(self.path_to_folder, f'{self.config.name_vent}_ventgrid_sim_multi_n.tif')
-        print("**************** Path stacking done *********")
-        # caterpillar
-        # Find the pathfinder and the lon_intersect, lat_intersect that are edge coordinate : X and Y edge
-        # And save is as a slope file txt as well as a shape file pathfinder_slope_file_shp
-        lon_intersect, lat_intersect, pathfinder_slope_file_shp = all_for_grid.pathfinder(
-            ventgrid_resolution=self.config.ventgrid_resolution,
-            dem_resolution=self.config.dem_resolution,
-            grid=grid,
-            path_to_results=self.path_to_folder,
-            flow_id=self.config.name_vent, dem=self.config.dem,
-            epsg_code=self.config.epsg_code, filename=sim_Losd_n1,
-            edge=True, flowgo=True)
-
-        # pathfinder_slope = os.path.join(path_to_folder, f'{self.config.name_vent}_pathfinder.txt')
-
-        print("**************** Path finder done :" f'{pathfinder_slope_file_shp} *********')
-
-        self.sim_layers = self.run_flowgo_gridmode(self.path_to_folder, pathfinder_slope_file_shp, grid_dict,
-                                                   lon_intersect, lat_intersect, sim_multi_n)
-
     def run_pathstacking(self, grid):
         """
         Stack all grid rasters into a mastergrid
+
+        Returns:
+            Mastergrid_n1 for the single path staking   : occurrence count
+            Mastergrid_multi_n for the multi paths staking : probability sum
         """
 
-        mastergrid, lon_X, lat_Y, grid_dict = all_for_grid.path_stacker_helper(
-            grid,
-            self.config.name_vent,
-            self.path_to_folder,
-            self.config.dem_resolution,
-            self.config.epsg_code
-        )
+        stack_results = all_for_grid.path_stacker_helper(
+            grid, self.config.name_vent, self.path_to_folder, self.config.dem_resolution, self.config.epsg_code)
 
-        sim_Losd_n1 = os.path.join(
-            self.path_to_folder,
-            f"{self.config.name_vent}_ventgrid_sim_n1.tif"
-        )
-        sim_multi_n = os.path.join(
-            self.path_to_folder,
-            f"{self.config.name_vent}_ventgrid_sim_multi_n.tif"
-        )
+        sim_stack = stack_results["sim"]
+        n1_stack = stack_results["n1"]
+
+        mastergrid = sim_stack["mastergrid"]
+        lon_X = sim_stack["lon_X"]
+        lat_Y = sim_stack["lat_Y"]
+        grid_dict = sim_stack["grid_dict"]
+
+        sim_multi_n = os.path.join(self.path_to_folder, f"{self.config.name_vent}_mastergrid_multi_n.tif")
+        sim_Losd_n1 = os.path.join(self.path_to_folder, f"{self.config.name_vent}_mastergrid_n1.tif")
+
 
         print("**************** Path stacking done *********")
-
         return {
-            "mastergrid": mastergrid,
-            "lon_X": lon_X,
-            "lat_Y": lat_Y,
-            "grid_dict": grid_dict,
-            "sim_Losd_n1": sim_Losd_n1,
-            "sim_multi_n": sim_multi_n,
-        }
+            "sim": sim_multi_n,
+            "n1": sim_Losd_n1,
+            "mastergrid_multi_n_file": os.path.join(self.path_to_folder,
+                                                    f"{self.config.name_vent}_mastergrid_multi_n.tif"),
+            "mastergrid_n1_file": os.path.join(self.path_to_folder,
+                                               f"{self.config.name_vent}_mastergrid_n1.tif"),
+            "grid_dict": n1_stack["grid_dict"], }
 
-    def run_pathfinding(self, grid, sim_Losd_n1):
+    def run_pathfinding(self, grid, mastergrid_n1_file):
         """
-        Run pathfinder on stacked grid
+        Run pathfinder on stacked grid of single path
         """
         lon_intersect, lat_intersect, pathfinder_slope_file_shp = all_for_grid.pathfinder(
             #ventgrid_resolution=self.config.ventgrid_resolution,
@@ -307,31 +127,87 @@ class Runner:
             flow_id=self.config.name_vent,
             dem=self.config.dem,
             epsg_code=self.config.epsg_code,
-            filename=sim_Losd_n1,
+            filename=mastergrid_n1_file,
             edge=True,
-            flowgo=True
-        )
+            flowgo=True)
 
-        print(
-            "**************** Path finder done : "
-            f"{pathfinder_slope_file_shp} *********"
-        )
+        print("**************** Pathfinder done : "
+            f"{pathfinder_slope_file_shp} *********" )
 
         return lon_intersect, lat_intersect, pathfinder_slope_file_shp
 
-    def run_flowgo_from_pathfinder(self, pathfinder_slope_file_shp, grid_dict,lon_intersect,lat_intersect, sim_multi_n):
+    def find_contributing_vents(self, lon_intersect, lat_intersect, losd_dict, window_size=0):
         """
-        Run FlowGO grid mode from pathfinder output
+        Find vents whose individual LOSD passes through the Pathfinder
+        drainage point.
+
+        Parameters
+        ----------
+        lon_intersect: float
+            X coordinate of the Pathfinder intersection point.
+        lat_intersect : float
+            Y coordinate of the Pathfinder intersection point.
+        losd_dict : dict
+            Dictionary containing individual LOSD rasters from path_stacker.
+            Each entry must contain:
+                - "Raster"
+                - "Longitude"
+                - "Latitude"
+        window_size : int, optional
+            Number of pixels around the closest pixel to search.
+
+        Returns
+        -------
+        contributing_vents : dict
+            Subset of losd_dict containing only vents contributing to the
+            Pathfinder corridor.
         """
-        self.sim_layers = self.run_flowgo_gridmode(
-            self.path_to_folder,
-            self.map_folder,
-            pathfinder_slope_file_shp,
-            grid_dict,
-            lon_intersect,
-            lat_intersect,
-            sim_multi_n
-        )
+
+        contributing_vents = {}
+
+        for vent_key, vent_data in losd_dict.items():
+
+            raster = vent_data["Raster"]
+            longitude = vent_data["Longitude"]
+            latitude = vent_data["Latitude"]
+
+            # Vérifier que le point Pathfinder est dans l'emprise du raster
+            xmin = longitude.min()
+            xmax = longitude.max()
+            ymin = latitude.min()
+            ymax = latitude.max()
+
+            # Attention : latitude peut être décroissante
+            if not (xmin <= lon_intersect <= xmax and
+                    min(ymin, ymax) <= lat_intersect <= max(ymin, ymax)):
+                continue
+
+            # Find closest pixel to the Pathfinder intersection point
+            col = np.argmin(np.abs(longitude - lon_intersect))
+            row = np.argmin(np.abs(latitude - lat_intersect))
+
+            # Define search window around this pixel
+            r0 = max(0, row - window_size)
+            r1 = min(raster.shape[0], row + window_size + 1)
+
+            c0 = max(0, col - window_size)
+            c1 = min(raster.shape[1], col + window_size + 1)
+
+            window = raster[r0:r1, c0:c1]
+
+            # If the LOSD crosses this area, the vent contributes
+            if np.any(window > 0):
+                contributing_vents[vent_key] = vent_data
+
+        print( f"{len(contributing_vents)} contributing vents identified "
+            f"at drainage point ({lon_intersect:.2f}, {lat_intersect:.2f})" )
+        # Export to csv and shape
+        all_for_grid.export_contributing_vents(contributing_vents,self.path_to_folder, self.config.name_vent,
+            self.config.epsg_code)
+
+
+        return contributing_vents
+
     def run_model(self, data: dict, main_id: str):
         """
         Run downflow from 'flow_id', 'long' and 'lat' in data
@@ -447,3 +323,194 @@ class Runner:
         os.makedirs(path, exist_ok=True)
 
         return path
+
+    def run_flowgo_contributing_vents(self,path_to_folder: str, pathfinder_slope_file_shp: str,
+            contributing_vents: dict,mastergrid_multi_n_file):
+        """
+        Run FLOWGO only for vents contributing to the main drainage corridor.
+
+        Each contributing vent already has a DOWNFLOW profile generated during
+        the grid simulations. This function simply reuses these profiles to run
+        FLOWGO and then aggregates all runout statistics.
+
+        Parameters
+        ----------
+        path_to_folder : str
+            Main simulation folder.
+
+        map_folder : str
+            Folder where GIS layers are written.
+
+        pathfinder_slope_file_shp : str
+            Pathfinder shapefile.
+
+        contributing_vents : dict
+            Dictionary returned by find_contributing_vents().
+
+        sim_multi_n : str
+            Mastergrid raster used for mapping.
+
+        Returns
+        -------
+        dict
+            Dictionary containing the map layers.
+        """
+
+        if self.config.mode == "downflowgo":
+
+            # ---------------------------------------------------------
+            # Initialize FLOWGO output table
+            # ---------------------------------------------------------
+
+            eff_dict = {"X": [], "Y": []}
+
+            start = self.config.effusion_rates_tuple["first_eff_rate"]
+            stop = self.config.effusion_rates_tuple["last_eff_rate"]
+            step = self.config.effusion_rates_tuple["step_eff_rate"]
+
+            for eff in np.arange(start, stop + step, step):
+                eff_dict[f"Run_out_{eff:.1f}"] = []
+                eff_dict[f"X_run_out_{eff:.1f}"] = []
+                eff_dict[f"Y_run_out_{eff:.1f}"] = []
+                eff_dict[f"X_init_{eff:.1f}"] = []
+                eff_dict[f"Y_init_{eff:.1f}"] = []
+
+            valid_vents = []
+
+            print(f"Running FLOWGO for {len(contributing_vents)} contributing vents...")
+
+            # ---------------------------------------------------------
+            # Loop over contributing vents only
+            # ---------------------------------------------------------
+
+            for vent_key, vent_data in contributing_vents.items():
+                lat, lon = vent_data["Coords"]
+                flow_id = f"{lon}_{lat}"
+                valid_vents.append({"flow_id": flow_id,"X": lon, "Y": lat})
+                path_to_flowgo_results = os.path.join( path_to_folder, f"vents_{flow_id}")
+                os.makedirs(path_to_flowgo_results, exist_ok=True)
+
+                # ---------------------------------------------------------
+                # Copy profile generated during DOWNFLOW
+                # ---------------------------------------------------------
+
+                old_profile = os.path.join(path_to_folder, f"profile_{flow_id}.txt")
+
+                new_profile = os.path.join(path_to_flowgo_results,f"profile_{flow_id}.txt")
+
+                if not os.path.exists(old_profile):
+                    print(f"Profile not found: {old_profile}")
+                    continue
+
+                shutil.copy2(old_profile, new_profile)
+
+                # ---------------------------------------------------------
+                # Create FLOWGO json
+                # ---------------------------------------------------------
+
+                simulation_flowgo = run_flowgo_effusion_rate_array.StartFlowgo()
+
+                json_file = os.path.join(path_to_flowgo_results, f"parameters_{flow_id}.json")
+
+                simulation_flowgo.make_new_json(self.config.json_input,flow_id,new_profile,json_file)
+
+                # ---------------------------------------------------------
+                # Run FLOWGO
+                # ---------------------------------------------------------
+
+                simulation_flowgo.run_flowgo_effusion_rate_array(json_file,path_to_flowgo_results,new_profile,
+                    self.config.effusion_rates_tuple)
+
+                # ---------------------------------------------------------
+                # Read FLOWGO results
+                # ---------------------------------------------------------
+
+                run_outs_file = os.path.join(
+                    path_to_flowgo_results,
+                    f"run_outs_{flow_id}.csv"
+                )
+
+                if not os.path.exists(run_outs_file):
+                    print(f"Missing FLOWGO output: {run_outs_file}")
+                    continue
+
+                df = pd.read_csv(run_outs_file)
+
+                for i in range(len(df)):
+                    eff = df["Effusion_rate"][i]
+
+                    eff_dict[f"Run_out_{eff:.1f}"].append(df["Distance_run_out"][i])
+                    eff_dict[f"X_run_out_{eff:.1f}"].append(df["X_run_out"][i])
+                    eff_dict[f"Y_run_out_{eff:.1f}"].append(df["Y_run_out"][i])
+                    eff_dict[f"X_init_{eff:.1f}"].append(df["X_init"][i])
+                    eff_dict[f"Y_init_{eff:.1f}"].append(df["Y_init"][i])
+
+                eff_dict["X"].append(lon)
+                eff_dict["Y"].append(lat)
+
+            # ---------------------------------------------------------
+            # Save merged FLOWGO outputs
+            # ---------------------------------------------------------
+
+            output_csv = os.path.join(path_to_folder, "run_outs.csv")
+            pd.DataFrame.from_dict(eff_dict).to_csv(output_csv, index=False)
+
+            valid_vents_csv = os.path.join(
+                path_to_folder,
+                "contributing_vents.csv"
+            )
+
+            pd.DataFrame(valid_vents).to_csv( valid_vents_csv, index=False)
+
+            # ---------------------------------------------------------
+            # Average runouts
+            # ---------------------------------------------------------
+
+            average_run_outs = all_for_grid.get_average_run_outs(
+                path_to_folder,
+                self.config.name_vent,
+                start,
+                stop,
+                step,
+                pathfinder_slope_file_shp
+            )
+
+        # ---------------------------------------------------------
+        # GIS layers
+        # ---------------------------------------------------------
+        map_folder = os.path.join(path_to_folder,"map")
+        shp_vent_file = os.path.join( map_folder, f"vents_{self.config.name_vent}.shp")
+        txt_to_shape.get_vent_shp(self.config.csv_vent_file,shp_vent_file,self.config.epsg_code)
+        shp_valid_vent_file = os.path.join(map_folder,f"contributing_vents_{self.config.name_vent}.shp")
+
+        txt_to_shape.get_vent_shp(valid_vents_csv,shp_valid_vent_file,self.config.epsg_code)
+
+        if self.config.mode == "downflowgo":
+
+            shp_runouts = os.path.join(map_folder,f"runouts_{self.config.name_vent}.shp")
+            txt_to_shape.get_runouts_grid_shp(average_run_outs,shp_runouts, self.config.epsg_code)
+            shp_vents_runouts = os.path.join(map_folder, f"vents_runouts_{self.config.name_vent}.shp" )
+            txt_to_shape.get_vents_runouts_shp( output_csv,shp_vents_runouts,self.config.epsg_code)
+            shp_iqr = os.path.join( map_folder,f"interquartiles_{self.config.name_vent}.shp" )
+
+            txt_to_shape.cut_lines_losd( pathfinder_slope_file_shp,shp_runouts,shp_iqr)
+
+            sim_layers = {
+                "shp_losd_file": pathfinder_slope_file_shp,
+                "shp_vent_file": shp_vent_file,
+                "shp_contributing_vent_file": shp_valid_vent_file,
+                "cropped_geotiff_file": mastergrid_multi_n_file,
+                "shp_runouts": shp_runouts,
+                "shp_iqr": shp_iqr,
+            }
+
+        else:
+
+            sim_layers = {
+                "shp_losd_file": pathfinder_slope_file_shp,
+                "shp_vent_file": shp_vent_file,
+                "shp_contributing_vent_file": shp_valid_vent_file,
+                "cropped_geotiff_file": mastergrid_multi_n_file,
+            }
+
+        return sim_layers

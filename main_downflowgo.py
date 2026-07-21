@@ -43,15 +43,19 @@ if __name__ == "__main__":
             for grid_data in grid_csv_data:
                 runner.run_model(grid_data, main_id)
 
+            #stack the rasters into mastergrids
             stack = runner.run_pathstacking(grid)
-            lon_i, lat_i, shp = runner.run_pathfinding(grid, stack["sim_Losd_n1"])
-            runner.run_flowgo_from_pathfinder(
-                shp,
-                stack["grid_dict"],
-                lon_i,
-                lat_i,
-                stack["sim_multi_n"]
-            )
+
+            # Pathfinding on the most frequently travelled corridor and return X and Y intercect
+            lon_intersect, lat_intersect, shp = runner.run_pathfinding(grid, stack["mastergrid_n1_file"])
+
+            # Find contributing vents
+            contributing_vents = runner.find_contributing_vents(lon_intersect,lat_intersect,stack["grid_dict"])
+
+            # Run FLOWGO only for contributing vents
+            sim_layers = runner.run_flowgo_contributing_vents(runner.path_to_folder,shp,contributing_vents,
+                stack["mastergrid_multi_n_file"])
+
         else:
             runner = Runner(config)
             runner.run_model(data, main_id)
@@ -63,7 +67,7 @@ if __name__ == "__main__":
                           dem=config.dem,
                           flow_id=main_id,
                           map_layers=config.map_layers,
-                          sim_layers=runner.sim_layers,
+                          sim_layers=sim_layers,
                           mode=config.mode,
                           language=config.language,
                           grid_mode=config.grid_mode)

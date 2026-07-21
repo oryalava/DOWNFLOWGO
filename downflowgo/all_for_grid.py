@@ -12,113 +12,149 @@ import csv
 import downflowgo.txt_to_shape as txt_to_shape
 import downflowgo.check_files as check_files
 import heapq
+from shapely.geometry import Point, LineString
 
 def grid_maker_reader(data: dict, config: object) -> np.ndarray:
     """
-    Make the grid for vents at the given coordinate.
-
-    Parameters
-    ----------
-    data: dict
-    Contains vent coordinates.
-
-    config: objet
-    Contains all the paths.
-
-    Return
-    ----------
-    grid: np.array
-    All the coordinates of the vents
+    Create a vent grid around a UTM coordinate.
     """
+
     print(f"Csv file used : {config.csv_vent_file}")
+
     flow_id = str(data['flow_id'])
-    for key_old, key_new in zip(('X', 'Y'), ('lon', 'lat')):
-        data[key_new] = data.pop(key_old)
 
-    # First check that each vent of csv file is within DEM
-    check_files.check_vent_in_dem(data['lon'], data['lat'], config.dem)
+    data['lon'] = float(data.pop('X'))
+    data['lat'] = float(data.pop('Y'))
 
-    grid = coordinate_maker(config.ventgrid_size, config.ventgrid_resolution,
-                            csv_file=False, coord_dict=True, coords=data)
+    check_files.check_vent_in_dem(data['lon'],  data['lat'],config.dem)
 
-    path_to_grid_folder = os.path.join(config.path_to_grid_folder, flow_id)
-    check_files.overwrite_check_files(config.delete_existing, path_to_grid_folder)
+    grid = coordinate_maker(vent_grid_size=config.ventgrid_size, resolution=config.ventgrid_resolution,
+        csv_file=False, coord_dict=True,coords=data)
 
-    grid_csv = grid_to_csv(grid, path_to_grid_folder, flow_id)
+    path_to_grid_folder = os.path.join(config.path_to_grid_folder,flow_id)
 
-    print(f"Grid created from {'vent' if config.from_vent else 'csv'} : {grid_csv}")
+    check_files.overwrite_check_files(config.delete_existing,path_to_grid_folder)
+
+    grid_csv = grid_to_csv(grid,path_to_grid_folder, flow_id)
+
+    print(f"Grid created : {grid_csv}")
+
     config.csv_vent_file = grid_csv
+
     return grid
 
 
 def coordinate_maker(vent_grid_size: float, resolution: float, csv_file=True, csv_vent_file='', coord_dict=False,
                      coords=None) -> np.ndarray:
-    """  This generates a list called "grid" of X, Y coordinates
-    representing each vent of the grid given its size and resolution"""
+    """
+    Generate a square grid of vents centered on a UTM coordinate.
+
+    Parameters
+    ----------
+    vent_grid_size : float
+        Total size of the square grid (m).
+
+    resolution : float
+        Distance between vents (m).
+
+    Returns
+    -------
+    grid : np.ndarray
+        Array of shape (n_vents, 2)
+        [:,0] = Easting (X)
+        [:,1] = Northing (Y)
+    """
 
     if csv_file and not coord_dict:
         with open(csv_vent_file, 'r') as csvfile:
             csvreader = csv.DictReader(csvfile, delimiter=';')
-            for row in csvreader:
-                flow_id = str(row['flow_id'])
-                long = float(row['X'])
-                lat = float(row['Y'])
+            row = next(csvreader)
+
+            long = float(row['X'])
+            lat = float(row['Y'])
 
     elif coord_dict and not csv_file:
-        flow_id = coords['flow_id']
         long = float(coords['lon'])
         lat = float(coords['lat'])
 
     else:
-        raise Exception('csv_file and coord_dict must be opposite boolean values.')
+        raise ValueError('csv_file and coord_dict must be opposite boolean values.')
 
-    vent_grid_size = float(vent_grid_size)
-    resolution = float(resolution)
-    lat_array = np.arange(lat - 0.5 * vent_grid_size, lat + 0.5 * vent_grid_size + resolution, resolution)
-    long_array = np.arange(long - 0.5 * vent_grid_size, long + 0.5 * vent_grid_size + resolution, resolution)
+    half_size = vent_grid_size / 2.0
 
-    grid = np.empty((len(long_array), len(lat_array)), dtype=tuple)
-    for i, x in enumerate(long_array):
-        for j, y in enumerate(lat_array):
-            grid[i, j] = (np.round(x, 4), np.round(y, 4))
+    x_array = np.arange(long - half_size, long + half_size + resolution / 2, resolution)
+
+    y_array = np.arange(lat - half_size, lat + half_size + resolution / 2, resolution)
+
+    X, Y = np.meshgrid(x_array, y_array, indexing='ij')
+
+    grid = np.column_stack([X.ravel(),Y.ravel()])
 
     return grid
 
 def grid_to_csv(grid: np.ndarray, path_to_results: str, flow_id: str) -> str:
-    """ This will make a csv file from the grid """
-
+    """ SAve vent grid to csv """
+    os.makedirs(path_to_results, exist_ok=True)
     grid_csv = os.path.join(path_to_results, f'{flow_id}_ventgrid_coordinates.csv')
 
-    fields = ['flow_id', 'X', 'Y']
-    ventsgrid = {}
-    for f in fields:
-        ventsgrid[f] = []
+    df = pd.DataFrame({
+        "flow_id": [f"{int(x)}_{int(y)}"
+            for x, y in grid], "X": grid[:, 0], "Y": grid[:, 1]})
 
-    for el in grid:
-        for coord in el:
-            lon = coord[0]
-            lat = coord[1]
-            ventsgrid['flow_id'].append(f"{int(lon)}_{int(lat)}")
-            ventsgrid['X'].append(lon)
-            ventsgrid['Y'].append(lat)
-
-    df = pd.DataFrame(ventsgrid)
-    df.to_csv(grid_csv, sep=';', index=False)
+    df.to_csv(grid_csv,sep=';',index=False)
 
     return grid_csv
 
+def path_stacker_helper(grid: dict, flow_id: str, path_to_results: str,resolution: float, epsg_code: str):
+    """
+    Builds both stacking products:
+    - n1 mode: occurrence count
+    - multi_n mode: probability sum
+    """
 
-def path_stacker_helper(grid: dict, flow_id: str, path_to_results: str, resolution: float, epsg_code: str):
-    # True = sum of the values (mode "multi_n" → pondéré par probabilité)
-    # False = simple comptage d’occurrences (mode "n1").
+    # ------------------------------------------------------------
+    # 1. Multi-n (probability-weighted stack)
+    # ------------------------------------------------------------
+    sim_mastergrid, lon_X, lat_Y, sim_dict = path_stacker(
+        grid=grid,
+        flow_id=flow_id,
+        path_to_results=path_to_results,
+        resolution=resolution,
+        epsg_code=epsg_code,
+        n=True,
+        helper=True
+    )
 
-    sim_mastergrid, sim_X, sim_Y, sim_dict = path_stacker(grid, flow_id, path_to_results, resolution, epsg_code,
-                                                          n=True, helper=True)
-    losd_mastergrid, lon_X, lat_Y, losd_dict = path_stacker(grid, flow_id, path_to_results, resolution, epsg_code,
-                                                            n=False, helper=True)
+    # ------------------------------------------------------------
+    # 2. N1 (occurrence stack)
+    # ------------------------------------------------------------
+    n1_mastergrid, _, _, n1_dict = path_stacker(
+        grid=grid,
+        flow_id=flow_id,
+        path_to_results=path_to_results,
+        resolution=resolution,
+        epsg_code=epsg_code,
+        n=False,
+        helper=True
+    )
 
-    return losd_mastergrid, lon_X, lat_Y, losd_dict
-
+    # ------------------------------------------------------------
+    # 3. Return everything consistently
+    # ------------------------------------------------------------
+    return {
+        "sim": {
+            "mastergrid": sim_mastergrid,
+            "lon_X": lon_X,
+            "lat_Y": lat_Y,
+            "grid_dict": sim_dict
+        },
+        "n1": {
+            "mastergrid": n1_mastergrid,
+            "lon_X": lon_X,
+            "lat_Y": lat_Y,
+            "grid_dict": n1_dict
+        }
+    }
 
 def path_stacker(grid: np.ndarray, flow_id: str, path_to_results: str, resolution: float, epsg_code: str, n=False,
                  helper=False):
@@ -127,20 +163,36 @@ def path_stacker(grid: np.ndarray, flow_id: str, path_to_results: str, resolutio
     lats = []
     lons = []
     grid_dict = {}
-    for line in grid:
-        for coord in line:
-            lon = int(coord[0])
-            lat = int(coord[1])
-            profile_tif = os.path.join(path_to_folder, f'profile_{lon}_{lat}_dH001_n1_sim.tif')
-            sim_file = os.path.join(path_to_folder, f'sim_{lon}_{lat}.tif')
-            if helper and not n:
-                file = profile_tif
-            else:
-                file = sim_file
 
-            files.append(file)
-            lats.append(lat)
-            lons.append(lon)
+    grid_array = np.asarray(grid)
+
+    # Accept both:
+    # (N, M, 2) -> old grid format
+    # (N, 2)    -> flattened grid format
+
+    if grid_array.ndim == 3:
+        coords = grid_array.reshape(-1, 2)
+
+    elif grid_array.ndim == 2 and grid_array.shape[1] == 2:
+        coords = grid_array
+
+    else:
+        raise ValueError(f"Unexpected grid format: {grid_array.shape}")
+    for coord in coords:
+
+        lon = int(coord[0])
+        lat = int(coord[1])
+
+        profile_tif = os.path.join(path_to_folder, f'profile_{lon}_{lat}_dH001_n1_sim.tif')
+        sim_file = os.path.join(path_to_folder, f'sim_{lon}_{lat}.tif')
+        if helper and not n:
+            file = profile_tif
+        else:
+            file = sim_file
+
+        files.append(file)
+        lats.append(lat)
+        lons.append(lon)
 
     # get corner coordinates and size of first raster and initialize master grid
     first_grid = rasterio.open(files[0])
@@ -294,13 +346,13 @@ def path_stacker(grid: np.ndarray, flow_id: str, path_to_results: str, resolutio
     # export to geotiff
     if helper and n:
         # simfile = f'{path_to_results}/{flow_id}_ventgrid_sim_multi_n.tif'
-        geotiff_name = "ventgrid_sim_multi_n.tif"
+        geotiff_name = "mastergrid_multi_n.tif"
     elif helper and not n:
         # simfile = f'{path_to_results}/{flow_id}_ventgrid_sim_n1.tif'
-        geotiff_name = 'ventgrid_sim_n1.tif'
+        geotiff_name = 'mastergrid_n1.tif'
     else:
         # simfile = f'{path_to_results}/{flow_id}_ventgrid_sim.tif'
-        geotiff_name = 'ventgrid_sim.tif'
+        geotiff_name = 'mastergrid_sim.tif'
     simfile = os.path.join(path_to_folder, f'{flow_id}_{geotiff_name}')
 
     raster = rasterio.open(simfile, 'w', driver='GTiff', height=mastergrid.shape[0],
@@ -311,6 +363,16 @@ def path_stacker(grid: np.ndarray, flow_id: str, path_to_results: str, resolutio
 
     return mastergrid, lon_X, lat_Y, grid_dict
 
+
+def get_bounds(ds):
+    """Return raster bounds in UTM"""
+    t = ds.transform
+    w, h = ds.width, ds.height
+
+    x_min, y_max = t * (0, 0)
+    x_max, y_min = t * (w, h)
+
+    return x_min, x_max, y_min, y_max
 
 def open_mastergrid(filename):
     # load in everything and extract data
@@ -340,332 +402,6 @@ def open_dem(dem, mastergrid_raster_topleft_X, mastergrid_raster_topleft_Y, mast
 
     dem.close()
     return elevations
-
-def pathfinder_origin(ventgrid_resolution, dem_resolution, grid, path_to_results, flow_id, dem, epsg_code, filename,
-               edge=True, flowgo=False):
-    # load in everything and extract data
-
-    resolution = dem_resolution
-    ventgrid_resolution = ventgrid_resolution
-    mastergrid_raster = rasterio.open(filename)
-    mastergrid = mastergrid_raster.read(1)
-
-    height = mastergrid.shape[0]
-    width = mastergrid.shape[1]
-    cols, rows = np.meshgrid(np.arange(width), np.arange(height))
-    xs, ys = rasterio.transform.xy(mastergrid_raster.transform, rows, cols)
-    lon = np.round(np.array(xs), decimals=6)
-    lat = np.round(np.array(ys), decimals=6)
-
-    mastergrid_raster_topleft_X = lon[0, 0]
-    mastergrid_raster_topleft_Y = lat[0, 0]
-    mastergrid_raster_bottomright_X = lon[-1, -1]
-    mastergrid_raster_bottomright_Y = lat[-1, -1]
-
-    # load in the DEM and 'trim' it to be the size of the matergrid
-    dem = rasterio.open(dem)
-    elevations = dem.read(1)
-
-    # get indicies where coordinates match mastergrid's top left and bottom right coordinates
-    dem_top_x, dem_top_y = dem.index(mastergrid_raster_topleft_X, mastergrid_raster_topleft_Y)
-    dem_bottom_x, dem_bottom_y = dem.index(mastergrid_raster_bottomright_X, mastergrid_raster_bottomright_Y)
-    elevations = elevations[dem_top_x:dem_bottom_x + 1, dem_top_y:dem_bottom_y + 1]
-
-    dem.close()
-    mastergrid_raster.close()
-    ###########################################################################
-    # normalize probabilities
-    probabilities = mastergrid / np.amax(mastergrid)
-
-    # cut out rows amd columns of all 0s
-    while (probabilities[0] == 0).all() or (probabilities[-1] == 0).all() or \
-            (probabilities[:, 0] == 0).all() or (probabilities[:, -1] == 0).all():
-
-        if (probabilities[0] == 0).all():
-            probabilities = probabilities[1:]
-            elevations = elevations[1:]
-            lon = lon[1:]
-            lat = lat[1:]
-
-        if (probabilities[-1] == 0).all():
-            probabilities = probabilities[:-2]
-            elevations = elevations[:-2]
-            lon = lon[:-2]
-            lat = lat[:-2]
-
-        if (probabilities[:, 0] == 0).all():
-            probabilities = probabilities[:, 1:]
-            elevations = elevations[:, 1:]
-            lon = lon[:, 1:]
-            lat = lat[:, 1:]
-
-        if (probabilities[:, -1] == 0).all():
-            probabilities = probabilities[:, :-2]
-            elevations = elevations[:, :-2]
-            lon = lon[:, :-2]
-            lat = lat[:, :-2]
-    ######################### find the source cell ################################
-    intersections = np.zeros((len(elevations), 2), dtype=object)
-    for i in range(len(elevations) - 1, -1, -1):
-        if i == len(elevations) - 1 or i == 0:
-            intersections[i, 0] = np.argmax(probabilities[i])
-            intersections[i, 1] = i
-            continue
-
-        if elevations[i, 0] == 0 and elevations[i, -1] != 0:
-            left = np.amax(np.where(elevations[i, :] == 0)) + 1
-            right = elevations.shape[1] - 1
-
-            if probabilities[i, right] > probabilities[i, left]:
-                intersections[i, 0] = right
-            else:
-                intersections[i, 0] = left
-
-        elif elevations[i, -1] == 0 and elevations[i, 0] != 0:
-            right = np.amin(np.where(elevations[i, :] == 0)) - 1
-            left = 0
-
-            if probabilities[i, right] > probabilities[i, left]:
-                intersections[i, 0] = right
-            else:
-                intersections[i, 0] = left
-
-        elif elevations[i, 0] == 0 and elevations[i, -1] == 0:
-            left = np.amax(np.where(elevations[i, :] == 0)) + 1
-            right = np.amin(np.where(elevations[i, :] == 0)) - 1
-
-            if (elevations[i] == 0).all():
-                intersections[i, 0] = 0
-            else:
-                if probabilities[i, right] > probabilities[i, left]:
-                    intersections[i, 0] = right
-                else:
-                    intersections[i, 0] = left
-
-        else:
-            left = 0
-            right = elevations.shape[1] - 1
-
-            if probabilities[i, right] > probabilities[i, left]:
-                intersections[i, 0] = right
-            else:
-                intersections[i, 0] = left
-
-                # else:
-            #     left = 0
-            #     right = elevations.shape[1]-1
-
-            #     if probabilities[i, right] > probabilities[i, left]:
-            #         intersections[i, 0] = right
-            #     else:
-            #         intersections[i, 0] = left
-
-        intersections[i, 1] = i
-
-    intersection_probabilities = np.zeros(len(elevations))
-    for i in range(0, len(elevations)):
-        intersection_probabilities[i] = probabilities[int(intersections[i, 1]), int(intersections[i, 0])]
-
-    start = np.amax(intersection_probabilities)
-    start_row = np.where(intersection_probabilities == start)[0]
-    if len(start_row) == 1:
-        start_row = start_row[0]
-        start_col = int(intersections[start_row, 0])
-    else:
-        surrounding_probabilities = np.zeros(len(start_row))
-        for count, row in enumerate(start_row):
-            col = int(intersections[row, 0])
-            if row - 1 >= 0 and col - 1 < 0 and row + 1 < probabilities.shape[0] and col + 1 < probabilities.shape[
-                1]:  # cell is on the left edge
-                probs = np.array([probabilities[row - 1, col], probabilities[row - 1, col - 1],
-                                  probabilities[row, col + 1],
-                                  probabilities[row + 1, col], probabilities[row + 1, col + 1]])
-
-            elif row - 1 < 0 and col - 1 < 0 and row + 1 < probabilities.shape[0] and col + 1 < probabilities.shape[
-                1]:  # cell is top left corner
-                probs = np.array([probabilities[row, col + 1],
-                                  probabilities[row + 1, col], probabilities[row + 1, col + 1]])
-
-            elif row - 1 >= 0 and col - 1 < 0 and row + 1 >= probabilities.shape[0] and col + 1 < probabilities.shape[
-                1]:  # cell is bottom left corner
-                probs = np.array([probabilities[row + 1, col], probabilities[row + 1, col + 1],
-                                  probabilities[row, col + 1]])
-
-            elif row - 1 < 0 and col - 1 >= 0 and row + 1 < probabilities.shape[0] and col + 1 < probabilities.shape[
-                1]:  # cell is on the top edge
-                probs = np.array([probabilities[row, col - 1], probabilities[row, col - 1],
-                                  probabilities[row + 1, col - 1], probabilities[row - 1, col],
-                                  probabilities[row + 1, col + 1]])
-
-            elif row - 1 >= 0 and col - 1 >= 0 and row + 1 >= probabilities.shape[0] and col + 1 < probabilities.shape[
-                1]:  # cell is on the bottom edge
-                probs = np.array(
-                    [probabilities[row - 1, col - 1], probabilities[row - 1, col], probabilities[row - 1, col - 1],
-                     probabilities[row, col - 1], probabilities[row, col + 1]])
-
-            elif row - 1 >= 0 and col - 1 >= 0 and row + 1 < probabilities.shape[0] and col + 1 >= probabilities.shape[
-                1]:  # cell is on the right edge
-                probs = np.array([probabilities[row - 1, col - 1], probabilities[row - 1, col],
-                                  probabilities[row, col - 1],
-                                  probabilities[row + 1, col - 1], probabilities[row + 1, col]])
-            elif row - 1 < 0 and col - 1 <= 0 and row + 1 < probabilities.shape[0] and col + 1 >= probabilities.shape[
-                1]:  # cell is top right corner
-                probs = np.array([probabilities[row, col - 1],
-                                  probabilities[row + 1, col - 1], probabilities[row + 1, col]])
-
-            elif row - 1 >= 0 and col - 1 >= 0 and row + 1 >= probabilities.shape[0] and col + 1 >= probabilities.shape[
-                1]:  # cell is bottom right corner
-                probs = np.array([probabilities[row - 1, col - 1], probabilities[row - 1, col],
-                                  probabilities[row, col - 1]])
-            else:  # row - 1 >= 0 and col - 1 >= 0 and row + 1 < probabilities.shape[0] and col + 1 < probabilities.shape[1],  cell is not an edge or corner cell
-                probs = np.array(
-                    [probabilities[row - 1, col - 1], probabilities[row - 1, col], probabilities[row - 1, col + 1],
-                     probabilities[row, col - 1], probabilities[row, col + 1],
-                     probabilities[row + 1, col - 1], probabilities[row + 1, col], probabilities[row + 1, col + 1]])
-
-            surrounding_probabilities[count] = np.amax(probs)
-
-        m_start = np.amax(surrounding_probabilities)
-        idx_start = np.where(surrounding_probabilities == m_start)[0]
-
-        if len(idx_start) == 1:
-            start_row = start_row[idx_start[0]]
-            start_col = int(intersections[start_row, 0])
-
-        else:
-            if (np.diff(start_row) == 1).all():  # this means the potential start cells are consecutive
-                start_elevs = np.zeros(len(start_row))
-                for count, s in enumerate(start_row):
-                    elev = elevations[s, int(intersections[s, 0])]
-                    start_elevs[count] = elev
-
-                min_elev_ind = np.argmin(start_elevs)
-                start_row = start_row[min_elev_ind]
-                start_col = int(intersections[start_row, 0])
-
-
-            else:
-                raise Exception('Unable to find start cell.')
-
-    ################ destination cell - scrub the vent grid #######################
-    # must handle that the lat and lon of vent grid coordinates may not be the top left corner of cell
-    lon_diff_topleft = abs(lon - grid[0, 0][0])
-    lat_diff_topleft = abs(lat - grid[0, 0][1])
-    col_left = np.argmin(lon_diff_topleft[0, :])  # i in mastergrid for top left
-    row_bottom = np.argmin(lat_diff_topleft[:, 0])  # j in mastergrid for top left
-    lon_diff_bottomright = abs(lon - grid[-1, -1][0])
-    lat_diff_bottomright = abs(lat - grid[-1, -1][1])
-    col_right = np.argmin(lon_diff_bottomright[0, :])  # i in mastergrid for bottom right
-    row_top = np.argmin(lat_diff_bottomright[:, 0])  # j in mastergrid for bottom right
-    probabilities_copy = np.copy(probabilities)
-    probabilities_copy[row_top + 1:row_bottom, col_left + 1:col_right] = 0.001  # homogenize vent grid probabilities
-
-    ventgrid_probabilities = probabilities_copy[row_top:row_bottom + 1, col_left:col_right + 1]
-    end_row = int(ventgrid_probabilities.shape[0] / 2) + row_top
-    end_col = int(ventgrid_probabilities.shape[1] / 2) + col_left
-
-    #################### get row, col coordinates of vent grid ####################
-    ventgrid_toprow = list(zip(np.full(len(ventgrid_probabilities[0]), row_top), np.arange(col_left, col_right + 1)))
-    ventgrid_bottomrow = list(
-        zip(np.full(len(ventgrid_probabilities[0]), row_bottom), np.arange(col_left, col_right + 1)))
-    ventgrid_leftcol = list(
-        zip(np.arange(row_top, row_bottom + 1), (np.full(len(ventgrid_probabilities[:, 0]), col_left))))
-    ventgrid_rightcol = list(
-        zip(np.arange(row_top, row_bottom + 1), (np.full(len(ventgrid_probabilities[:, 0]), col_right))))
-
-    ############################### A* Search #####################################
-    ngrid = probabilities_copy.tolist()
-    for count0, p in enumerate(ngrid):
-        for count1, q in enumerate(p):
-            if q == 0:
-                ngrid[count0][count1] = 9999
-            else:
-                ngrid[count0][count1] = 1 - ngrid[count0][count1]
-
-    src_original = [start_row, start_col]
-    src_list = [src_original]
-    dest = [end_row, end_col]
-    ROW = probabilities.shape[0]
-    COL = probabilities.shape[1]
-    path = astar.a_star_search(ngrid, src_original, dest, ROW, COL, resolution)
-
-    if edge:
-        ventgrid_intersect = [point for point in path if (point in ventgrid_toprow
-                                                          or point in ventgrid_bottomrow
-                                                          or point in ventgrid_leftcol
-                                                          or point in ventgrid_rightcol)]
-        stop_path = path.index(ventgrid_intersect[0])
-        path = path[0:stop_path]
-
-    ############## get elevations, latitudes, and longitudes ######################
-    X = []  # lon
-    Y = []  # lat
-    Z = []  # elevation
-
-    for coord in path:
-        X.append(lon[coord[0], coord[1]])
-        Y.append(lat[coord[0], coord[1]])
-        Z.append(elevations[coord[0], coord[1]])
-
-    # upflow the elevations
-    for count in range(1, len(Z)):
-        if Z[count] <= Z[count - 1]:
-            Z[count] = Z[count - 1] + 0.01
-
-    Z.reverse()
-    Y.reverse()
-    X.reverse()
-
-    # lat-long of grid intersection i.e. first in X and Y
-    lat_ventgrid_intersection = Y[0]
-    lon_ventgrid_intersection = X[0]
-
-    if flowgo:
-        csv_vent_file = os.path.join(path_to_results, f'{flow_id}_edge_vent.csv')
-        data = {'flow_id': [flow_id],
-                'X': [lon_ventgrid_intersection],
-                'Y': [lat_ventgrid_intersection]}
-        df = pd.DataFrame(data, columns=data.keys())
-        df.to_csv(csv_vent_file, sep=';', index=False)
-    ########################### make slope file ###################################
-    # find distances between points
-    distances_between_points = [0]
-    for r in range(1, len(Y)):
-        distance = math.sqrt(((X[r] - X[r - 1]) ** 2) + (Y[r] - Y[r - 1]) ** 2)
-        distances_between_points.append(distance)
-
-    L = [0]
-    distance = distances_between_points[1] + distances_between_points[0]
-    for r in range(1, len(Y)):
-        L.append(distance)
-        distance = distances_between_points[r] + L[-1]
-
-    # find slopes
-    slope = []
-    for r in range(1, len(L)):
-        dZ = Z[r - 1] - Z[r]
-        dL = L[r] - L[r - 1]
-        angle = math.atan2(dZ, dL)
-        angle = math.degrees(angle)
-        slope.append(angle)
-    slope.append(0)
-
-    # create the textfile
-    data = {'x': X,
-            'y': Y,
-            'z': Z,
-            'L': L,
-            'slope': slope}
-    df = pd.DataFrame(data, columns=data.keys())
-    path_to_map_folder = os.path.join(path_to_results,'map')
-    #os.mkdir(path_to_map_folder)
-    pathfinder_slope_file = os.path.join(path_to_results, f'{flow_id}_pathfinder.txt')
-    pathfinder_slope_file_shp = os.path.join(path_to_results, f'{flow_id}_pathfinder.shp')
-    df.to_csv(pathfinder_slope_file, sep='\t', index=False)
-    txt_to_shape.get_path_shp(pathfinder_slope_file, pathfinder_slope_file_shp, epsg_code)
-
-    return lon_ventgrid_intersection, lat_ventgrid_intersection, pathfinder_slope_file_shp
-
 
 # -------------------------------------------------------------------------
 # Dijkstra until reaching any cell on a target "edge" set (8-connected)
@@ -760,10 +496,10 @@ def pathfinder(dem_resolution,grid,path_to_results,flow_id,dem,epsg_code,filenam
     to the vent-grid boundary using Dijkstra on a raster cost surface.
 
     Steps:
-    - Read master grid (probability) and DEM cropped to the master extent.
+    - Read single-payj mastergrid (probability) and DEM cropped to the master extent.
     - Normalize probabilities and perform a safe vectorized trim of all-zero margins.
     - Robustly determine a source cell on left/right edges of the non-zero rows.
-    - Identify the vent-grid rectangle inside the master grid and homogenize inner probs.
+    - Identify the vent-grid rectangle inside the mastergrid and homogenize inner probs.
     - Run Dijkstra until the vent-grid boundary is reached.
     - Extract X/Y/Z, compute cumulative distance L and slope, write TXT and SHP.
 
@@ -793,6 +529,17 @@ def pathfinder(dem_resolution,grid,path_to_results,flow_id,dem,epsg_code,filenam
     (lon_ventgrid_intersection, lat_ventgrid_intersection, pathfinder_slope_file_shp) : Tuple[float, float, str]
     """
 
+    grid = np.asarray(grid)
+
+    if grid.ndim == 2 and grid.shape[1] == 2:
+        # reconstruct square grid
+        n = int(np.sqrt(len(grid)))
+        grid = grid.reshape(n, n, 2)
+
+    elif grid.ndim != 3:
+        raise ValueError(
+            f"Unexpected grid format: {grid.shape}"
+        )
     # ---------------------------------------------------------------------
     # Load data (user-provided helpers)
     # mastergrid: 2D probability array; lon/lat: 2D coordinates matching mastergrid
@@ -802,12 +549,11 @@ def pathfinder(dem_resolution,grid,path_to_results,flow_id,dem,epsg_code,filenam
     elevations = open_dem(dem, mrtX, mrtY, mrbX, mrbY)
 
     # ---------------------------------------------------------------------
-    # Normalize probabilities to [0,1]
+    # Check normalization [0,1]
     # ---------------------------------------------------------------------
-    maxp = np.amax(mastergrid)
-    if maxp <= 0:
+    if np.amax(mastergrid) <= 0:
         raise ValueError("Probability grid is entirely zero (or invalid).")
-    probabilities = mastergrid / maxp
+    probabilities = mastergrid
 
     # ---------------------------------------------------------------------
     # Vectorized trim: remove rows/cols that are all zeros
@@ -932,8 +678,7 @@ def pathfinder(dem_resolution,grid,path_to_results,flow_id,dem,epsg_code,filenam
         cost=cost,
         start=start,
         edge_cells=edge_cells,
-        cell_size=dem_resolution
-    )
+        cell_size=dem_resolution)
 
     if not path:
         raise RuntimeError("Dijkstra failed: no path from source to the vent-grid boundary.")
@@ -1119,3 +864,115 @@ def get_average_run_outs(path_to_results: str, flow_id: str, start: float, stop:
     new_df.to_csv(average_run_outs)
     return average_run_outs
 
+def losd_passes_near_point(latitude, longitude,lat_intersect, lon_intersect,tol):
+    coords = list(zip(longitude, latitude))
+    line = LineString(coords)
+    p = Point(lon_intersect, lat_intersect)
+    return line.distance(p) <= tol
+
+def export_contributing_vents(contributing_vents, path_to_results, flow_id, epsg_code):
+    """
+    Export contributing vents coordinates as CSV and shapefile.
+
+    Parameters
+    ----------
+    contributing_vents : dict
+        Dictionary returned by find_contributing_vents().
+        Each entry must contain:
+            - "Coords": (lat, lon)
+
+    path_to_results : str
+        Output directory.
+
+    flow_id : str
+        Flow identifier.
+
+    epsg_code : int
+        EPSG code of the coordinates.
+
+    Returns
+    -------
+    csv_file, shp_file
+    """
+
+    vents = []
+
+    for vent_key, vent_data in contributing_vents.items():
+
+        # path_stacker stores coordinates as (lat, lon)
+        lat, lon = vent_data["Coords"]
+
+        vents.append({
+            "vent_id": str(vent_key),
+            "X": float(lon),
+            "Y": float(lat)
+        })
+
+    if len(vents) == 0:
+        raise ValueError("No contributing vents to export.")
+
+    # ------------------------------------------------------------
+    # CSV export
+    # ------------------------------------------------------------
+    df = pd.DataFrame(vents)
+
+    csv_file = os.path.join(
+        path_to_results,
+        f"{flow_id}_contributing_vents.csv"
+    )
+
+    df.to_csv(
+        csv_file,
+        sep=";",
+        index=False
+    )
+
+    # ------------------------------------------------------------
+    # Convert CSV to shapefile
+    # ------------------------------------------------------------
+    shp_file = os.path.join(
+        path_to_results,
+        f"{flow_id}_contributing_vents.shp"
+    )
+
+    schema = {
+        "geometry": "Point",
+        "properties": {
+            "vent_id": "str",
+            "X": "float",
+            "Y": "float"
+        }
+    }
+
+    with fiona.open(
+        shp_file,
+        "w",
+        driver="ESRI Shapefile",
+        crs=CRS.from_epsg(int(epsg_code)).to_wkt(),
+        schema=schema
+    ) as shp:
+
+        for _, row in df.iterrows():
+
+            point = Point(
+                row["X"],
+                row["Y"]
+            )
+
+            shp.write({
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": point.coords[0]
+                },
+                "properties": {
+                    "vent_id": row["vent_id"],
+                    "X": row["X"],
+                    "Y": row["Y"]
+                }
+            })
+
+    print("Contributing vents exported:")
+    print(f"  CSV: {csv_file}")
+    print(f"  SHP: {shp_file}")
+
+    return csv_file, shp_file
