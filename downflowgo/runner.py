@@ -19,67 +19,87 @@ class Runner:
     def __init__(self, config: object):
         self.config = config
 
-    def run_flowgo_no_gridmode(self, flow_id: str, path_to_folder: str, map_folder: str, sim_layers: dict):
-        """Run FLOWGO without gridmode and make the map for donwflowgo results"""
-        print("************************ Start FLOWGO for FLOW ID =", flow_id, '*********')
-        path_to_flowgo_results = os.path.join(path_to_folder, 'results_flowgo')
-        if not os.path.exists(path_to_flowgo_results):
-            os.makedirs(path_to_flowgo_results)
+    def _run_flowgo_single_vent(self, flow_id: str, path_to_folder: str, path_to_flowgo_results: str,  profile_file: str):
 
-        # get LoSD from DOWNFLOW and clean it if necessary
-        slope_file = sim_layers['losd_file']
-        df = pd.read_csv(slope_file, sep=r'\s+')
+        """
+        Run FLOWGO for a single flow_id using an existing DOWNFLOW profile.
+
+        Parameters
+        ----------
+        flow_id : str  #ID of the flow/vent.
+        path_to_folder : str  #Main simulation folder.
+        path_to_flowgo_results : str # Folder where FLOWGO results are written.
+      profile_file : str  # Profile/LoSD file used by FLOWGO.
+
+    Returns
+    -------
+    str Path to the FLOWGO run_outs CSV file.
+        """
+        os.makedirs(path_to_flowgo_results, exist_ok=True)
+        # ---------------------------------------------------------
+        # Check profile
+        # ---------------------------------------------------------
+
+        if not os.path.exists(profile_file):
+            print(f"Profile not found: {profile_file}")
+            return None
+
+        # ---------------------------------------------------------
+        # Clean profile if necessary
+        # ---------------------------------------------------------
+
+        df = pd.read_csv(profile_file,sep=r'\s+')
         df = df.dropna()
-        df_cleaned = df[df['L'].diff().fillna(1) > 0]
-        assert all(df_cleaned['L'].diff().dropna() > 0), "L is still not strictly increasing"
-        df_cleaned.to_csv(slope_file, sep="\t", index=False)
+        df_cleaned = df[df["L"].diff().fillna(1) > 0]
+        assert all(df_cleaned["L"].diff().dropna() > 0), "L is still not strictly increasing"
+        df_cleaned.to_csv(profile_file,sep="\t",index=False)
 
-        # Run FLOWGO using the json defined effusion rate
+        # ---------------------------------------------------------
+        # Run FLOWGO
+        # ---------------------------------------------------------
+        #run flowgo using defined effusion rate in json
         if self.config.effusion_rates_tuple is None:
-            # when effusion rate = 0,  flowgo calculates the effusion rate based on the channel dimensions
-            json_file_new = os.path.join(path_to_flowgo_results, f'parameters_{flow_id}.json')
+            #when effusion rate = 0, flowgo calculates the effusion rate based on the channel dimensions
+            json_file = os.path.join(path_to_flowgo_results, f"parameters_{flow_id}.json" )
             with open(self.config.json_input, "r") as data_file:
-                read_json_data = json.load(data_file)
-            read_json_data["slope_file"] = slope_file
-            read_json_data["effusion_rate_init"] = 0.0
-            read_json_data["lava_name"] = flow_id
+                json_data = json.load(data_file)
+            json_data["slope_file"] = profile_file
+            json_data["effusion_rate_init"] = 0.0
+            json_data["lava_name"] = flow_id
 
-            with open(json_file_new, "w") as data_file:
-                json.dump(read_json_data, data_file)
-
+            with open(json_file, "w") as data_file:
+                json.dump(json_data, data_file)
             flowgo = run_flowgo.RunFlowgo()
-            flowgo.run(json_file_new, path_to_flowgo_results)
-            filename = flowgo.get_file_name_results(path_to_flowgo_results, json_file_new)
+            flowgo.run(json_file,path_to_flowgo_results)
+            filename = flowgo.get_file_name_results(path_to_flowgo_results,json_file)
             filename_array = [filename]
-            plot_flowgo_results.plot_all_results(path_to_flowgo_results, filename_array, json_file_new)
+            plot_flowgo_results.plot_all_results(path_to_flowgo_results,filename_array,json_file)
 
-            with open(json_file_new, "r") as data_file:
+            with open(json_file, "r") as data_file:
                 data = json.load(data_file)
             lava_name = data["lava_name"]
-            run_outs.get_run_outs(path_to_flowgo_results, filename_array, slope_file, lava_name)
-            print('****** FLOWGO results are saved:', filename, '***********')
+            run_outs.get_run_outs(path_to_flowgo_results, filename_array, profile_file,lava_name)
+
+            print( f"****** FLOWGO results saved for {flow_id}: {filename} ******")
 
         else:
-            # Run FLOWGO for several effusion rates
-            simulation = run_flowgo_effusion_rate_array.StartFlowgo()
-            json_file_new = os.path.join(path_to_flowgo_results, f'parameters_{flow_id}.json')
-            simulation.make_new_json(self.config.json_input, flow_id, slope_file, json_file_new)
-            simulation.run_flowgo_effusion_rate_array(json_file_new, path_to_flowgo_results, slope_file,
-                                                      self.config.effusion_rates_tuple)
-        # Save the run_outs results
-        run_outs_file = os.path.join(path_to_flowgo_results, f'run_outs_{flow_id}.csv')
-        shp_runouts = os.path.join(map_folder, f'runouts_{flow_id}.shp')
-        txt_to_shape.get_runouts_shp(run_outs_file, shp_runouts, self.config.epsg_code)
-        # move(losd_file)
-        os.rename(sim_layers['losd_file'], os.path.join(map_folder, f'losd_{flow_id}_profile_00000.txt'))
+            # FLOWGO for several effusion rates
+            simulation = (run_flowgo_effusion_rate_array.StartFlowgo())
+            json_file = os.path.join(path_to_flowgo_results,f"parameters_{flow_id}.json")
+            simulation.make_new_json(self.config.json_input,flow_id, profile_file,json_file)
+            simulation.run_flowgo_effusion_rate_array(json_file, path_to_flowgo_results,profile_file,self.config.effusion_rates_tuple)
 
-        print('*********** FLOWGO executed and results stored in:', path_to_flowgo_results, '***********')
-        shp_30pct = os.path.join(map_folder, f'30pct_{self.config.name_vent}.shp')
-        txt_to_shape.cut_lines_losd_30pct(sim_layers["shp_losd_file"], shp_runouts, shp_30pct)
+        # ---------------------------------------------------------
+        # FLOWGO output
+        # ---------------------------------------------------------
 
-        # Make the map
-        sim_layers["shp_runouts"] = shp_runouts
-        sim_layers["shp_30pct"] = shp_30pct
+        run_outs_file = os.path.join(path_to_flowgo_results,f"run_outs_{flow_id}.csv")
+
+        if not os.path.exists(run_outs_file):
+            print(f"Missing FLOWGO output: {run_outs_file}")
+            return None
+
+        return run_outs_file
 
     def run_pathstacking(self, grid):
         """
@@ -211,7 +231,6 @@ class Runner:
     def run_model(self, data: dict, main_id: str):
         """
         Run downflow from 'flow_id', 'long' and 'lat' in data
-        and if downflowgo run flowgo no grid mode
 
         Parameters
         ----------
@@ -259,7 +278,7 @@ class Runner:
             txt_to_shape.crop_and_convert_to_tif(profile_asc, cropped_file, self.config.epsg_code)
             os.remove(profile_asc)
         else:
-            # if not the LoSd and vent are converted here into shape files
+            # if no grid; the LoSd and vent are converted here into shape files
             losd_file = os.path.join(self.path_to_folder, "profile_00000.txt")
             shp_losd_file = os.path.join(self.map_folder, f'losd_{flow_id}.shp')
             txt_to_shape.get_path_shp(losd_file, shp_losd_file, self.config.epsg_code)
@@ -287,18 +306,12 @@ class Runner:
 
         print("**************** End of DOWNFLOW ", flow_id, '*********')
 
-        if self.config.grid_mode == 'no':
-            # Define the map_layers dictionary initially
-            # Make the map for donwflow results
-            self.sim_layers = {
-                'losd_file': losd_file,
-                'shp_losd_file': shp_losd_file,
-                'shp_vent_file': shp_vent_file,
-                'cropped_geotiff_file': cropped_geotiff_file,
-            }
-
-            if self.config.mode == "downflowgo":
-                self.run_flowgo_no_gridmode(flow_id, self.path_to_folder, self.map_folder, self.sim_layers)
+        if self.config.mode == "downflow":
+            sim_layers = {
+                "cropped_geotiff_file": cropped_geotiff_file,
+                "shp_vent_file": shp_vent_file,
+                "shp_losd_file": shp_losd_file}
+            return sim_layers
 
     def init_results_folder(self, flow_id=None):
         """
@@ -331,7 +344,7 @@ class Runner:
 
         Each contributing vent already has a DOWNFLOW profile generated during
         the grid simulations. This function simply reuses these profiles to run
-        FLOWGO and then aggregates all runout statistics.
+        FLOWGO and then aggregates all runnout statistics.
 
         Parameters
         ----------
@@ -393,42 +406,25 @@ class Runner:
                 # ---------------------------------------------------------
                 # Copy profile generated during DOWNFLOW
                 # ---------------------------------------------------------
-
                 old_profile = os.path.join(path_to_folder, f"profile_{flow_id}.txt")
-
                 new_profile = os.path.join(path_to_flowgo_results,f"profile_{flow_id}.txt")
-
                 if not os.path.exists(old_profile):
                     print(f"Profile not found: {old_profile}")
                     continue
-
                 shutil.copy2(old_profile, new_profile)
 
-                # ---------------------------------------------------------
-                # Create FLOWGO json
-                # ---------------------------------------------------------
-
-                simulation_flowgo = run_flowgo_effusion_rate_array.StartFlowgo()
-
-                json_file = os.path.join(path_to_flowgo_results, f"parameters_{flow_id}.json")
-
-                simulation_flowgo.make_new_json(self.config.json_input,flow_id,new_profile,json_file)
 
                 # ---------------------------------------------------------
                 # Run FLOWGO
                 # ---------------------------------------------------------
 
-                simulation_flowgo.run_flowgo_effusion_rate_array(json_file,path_to_flowgo_results,new_profile,
-                    self.config.effusion_rates_tuple)
+                run_outs_file = self._run_flowgo_single_vent(flow_id, path_to_folder,path_to_flowgo_results,new_profile)
+                if run_outs_file is None:
+                    continue
 
                 # ---------------------------------------------------------
                 # Read FLOWGO results
                 # ---------------------------------------------------------
-
-                run_outs_file = os.path.join(
-                    path_to_flowgo_results,
-                    f"run_outs_{flow_id}.csv"
-                )
 
                 if not os.path.exists(run_outs_file):
                     print(f"Missing FLOWGO output: {run_outs_file}")
@@ -438,7 +434,6 @@ class Runner:
 
                 for i in range(len(df)):
                     eff = df["Effusion_rate"][i]
-
                     eff_dict[f"Run_out_{eff:.1f}"].append(df["Distance_run_out"][i])
                     eff_dict[f"X_run_out_{eff:.1f}"].append(df["X_run_out"][i])
                     eff_dict[f"Y_run_out_{eff:.1f}"].append(df["Y_run_out"][i])
@@ -493,7 +488,7 @@ class Runner:
             txt_to_shape.get_vents_runouts_shp( output_csv,shp_vents_runouts,self.config.epsg_code)
             shp_iqr = os.path.join( map_folder,f"interquartiles_{self.config.name_vent}.shp" )
 
-            txt_to_shape.cut_lines_losd( pathfinder_slope_file_shp,shp_runouts,shp_iqr)
+            txt_to_shape.cut_lines_losd(pathfinder_slope_file_shp,shp_runouts,shp_iqr)
 
             sim_layers = {
                 "shp_losd_file": pathfinder_slope_file_shp,
@@ -512,5 +507,68 @@ class Runner:
                 "shp_contributing_vent_file": shp_valid_vent_file,
                 "cropped_geotiff_file": mastergrid_multi_n_file,
             }
+
+        return sim_layers
+    def run_flowgo_no_gridmode(self,path_to_folder: str):
+
+        """
+        Run FLOWGO for a single vent without gridmode.
+        """
+        flow_id = self.config.name_vent
+        print("**************** Start FLOWGO for FLOW ID =",flow_id, "****************" )
+
+        map_folder = os.path.join(path_to_folder,"map")
+        path_to_flowgo_results = os.path.join(path_to_folder,"results_flowgo")
+        os.makedirs(path_to_flowgo_results, exist_ok=True)
+
+
+        # ---------------------------------------------------------
+        # get cropped sim and profile and define the vent
+        # ---------------------------------------------------------
+        cropped_geotiff_file = os.path.join(path_to_folder,f"sim_{flow_id}.tif")
+        slope_file = os.path.join(path_to_folder,"profile_00000.txt")
+
+        df_profile = pd.read_csv(slope_file, sep=r"\s+")
+        x_vent = df_profile.iloc[0]["x"]
+        y_vent = df_profile.iloc[0]["y"]
+
+
+        # ---------------------------------------------------------
+        # Run FLOWGO
+        # ---------------------------------------------------------
+        run_outs_file = self._run_flowgo_single_vent(flow_id, path_to_folder, path_to_flowgo_results, slope_file)
+
+        if run_outs_file is None:
+            print("FLOWGO failed or run_outs file is missing")
+            return None
+
+        # ---------------------------------------------------------
+        # GIS outputs
+        # ---------------------------------------------------------
+        shp_vent_file = os.path.join(map_folder, f"vents_{flow_id}.shp")
+        txt_to_shape.write_single_vent_shp(flow_id, x_vent, y_vent, shp_vent_file, self.config.epsg_code)
+        shp_losd_file = os.path.join(self.map_folder, f'losd_{flow_id}.shp')
+        txt_to_shape.get_path_shp(slope_file, shp_losd_file, self.config.epsg_code)
+
+        if self.config.mode == "downflowgo":
+            shp_runouts = os.path.join(map_folder, f"runouts_{self.config.name_vent}.shp")
+            txt_to_shape.get_runouts_shp(run_outs_file, shp_runouts, self.config.epsg_code)
+            shp_30pct = os.path.join(map_folder, f"30pct_{self.config.name_vent}.shp")
+            txt_to_shape.cut_lines_losd_30pct(shp_losd_file, shp_runouts, shp_30pct)
+
+            sim_layers = {
+                "cropped_geotiff_file": cropped_geotiff_file,
+                "shp_vent_file": shp_vent_file,
+                "shp_losd_file": shp_losd_file,
+                "shp_runouts": shp_runouts,
+                "shp_30pct": shp_30pct}
+
+        else:
+            sim_layers = {
+                "cropped_geotiff_file": cropped_geotiff_file,
+                "shp_vent_file": shp_vent_file,
+                "shp_losd_file": shp_losd_file}
+
+        print( "**************** FLOWGO executed and results stored in:",path_to_flowgo_results,"****************" )
 
         return sim_layers
