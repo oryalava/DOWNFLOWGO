@@ -58,7 +58,15 @@ You will need :
 
 ```conda env create -f environment.yml```
 
-or requirements :
+or from requirements : 
+
+```conda create -n env_downflowgo python=3.8```
+
+```conda activate env_downflowgo```
+
+```conda install -c conda-forge gdal=3.6.2 pyproj=3.5.0```
+
+```pip install rasterio=1.3.10 fiona=1.9.6 shapely=2.0.5```
 
 ```pip install -r requirements.txt```
 
@@ -148,6 +156,11 @@ For more information go to ```https://github.com/pyflowgo/pyflowgo.git ```
 
 To run DOWNFLOWGO from your terminal :
  ``` python main_downflowgo.py ./assets/input/config_downflowgo.ini ```
+
+You can also use the webapp using streamlit:
+
+
+ ``` streamlit run downflowgo_app.py ``` 
 
 You can choose in the configuration file whether you want a GUI and if you want to run DOWNFLOW or DOWNFLOWGO.
 You can also choose to display the map or no (if not it will be saved anyway in the folder)

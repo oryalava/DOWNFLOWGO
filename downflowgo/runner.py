@@ -123,9 +123,17 @@ class Runner:
 
         sim_multi_n = os.path.join(self.path_to_folder, f"{self.config.name_vent}_mastergrid_multi_n.tif")
         sim_Losd_n1 = os.path.join(self.path_to_folder, f"{self.config.name_vent}_mastergrid_n1.tif")
-
-
         print("**************** Path stacking done *********")
+
+        # Delete individual path-stacking rasters
+        for filename in os.listdir(self.path_to_folder):
+            if filename.startswith("sim_") and filename.endswith(".tif"):
+                file_path = os.path.join(self.path_to_folder, filename)
+                os.remove(file_path)
+            if filename.startswith("profile_") and filename.endswith(".tif"):
+                file_path = os.path.join(self.path_to_folder, filename)
+                os.remove(file_path)
+
         return {
             "sim": sim_multi_n,
             "n1": sim_Losd_n1,
