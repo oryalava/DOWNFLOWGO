@@ -155,12 +155,12 @@ For more information go to ```https://github.com/pyflowgo/pyflowgo.git ```
 ### 3) Run the code:
 
 To run DOWNFLOWGO from your terminal :
+
  ``` python main_downflowgo.py ./assets/input/config_downflowgo.ini ```
 
-You can also use the webapp using streamlit:
+You can also use the GUI:
 
-
- ``` streamlit run downflowgo_app.py ``` 
+ ``` python main_downflowgo_GUI.py ./assets/input/config_downflowgo.ini ```
 
 You can choose in the configuration file whether you want a GUI and if you want to run DOWNFLOW or DOWNFLOWGO.
 You can also choose to display the map or no (if not it will be saved anyway in the folder)
