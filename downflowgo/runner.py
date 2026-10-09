@@ -517,12 +517,15 @@ class Runner:
             }
 
         return sim_layers
-    def run_flowgo_no_gridmode(self,path_to_folder: str):
+    def run_flowgo_no_gridmode(self, path_to_folder: str, flow_id=None):
 
         """
         Run FLOWGO for a single vent without gridmode.
         """
-        flow_id = self.config.name_vent
+        if flow_id is None:
+            flow_id = self.config.name_vent
+
+        flow_id = str(flow_id).strip()
         print("**************** Start FLOWGO for FLOW ID =",flow_id, "****************" )
 
         map_folder = os.path.join(path_to_folder,"map")
@@ -559,9 +562,9 @@ class Runner:
         txt_to_shape.get_path_shp(slope_file, shp_losd_file, self.config.epsg_code)
 
         if self.config.mode == "downflowgo":
-            shp_runouts = os.path.join(map_folder, f"runouts_{self.config.name_vent}.shp")
+            shp_runouts = os.path.join(map_folder, f"runouts_{flow_id}.shp")
             txt_to_shape.get_runouts_shp(run_outs_file, shp_runouts, self.config.epsg_code)
-            shp_30pct = os.path.join(map_folder, f"30pct_{self.config.name_vent}.shp")
+            shp_30pct = os.path.join(map_folder, f"30pct_{flow_id}.shp")
             txt_to_shape.cut_lines_losd_30pct(shp_losd_file, shp_runouts, shp_30pct)
 
             sim_layers = {

@@ -33,7 +33,7 @@ if __name__ == "__main__":
     for data in csv_data:
         # First check that each vent of csv file is within DEM
         check_vent_in_dem(data['X'], data['Y'], config.dem)
-        main_id = data["flow_id"]
+        main_id = str(data["flow_id"]).strip()
         runner = Runner(config)
         if config.mode == "downflowgo":
             if config.grid_mode == 'yes':
@@ -61,7 +61,7 @@ if __name__ == "__main__":
             else:
                 runner.run_model(data, main_id)
                 # Run FLOWGO only for one vent or one csv file
-                sim_layers = runner.run_flowgo_no_gridmode(runner.path_to_folder)
+                sim_layers = runner.run_flowgo_no_gridmode(runner.path_to_folder,flow_id=main_id)
         else:
             sim_layers = runner.run_model(data, main_id)
 
