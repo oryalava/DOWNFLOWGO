@@ -354,6 +354,8 @@ class Runner:
         the grid simulations. This function simply reuses these profiles to run
         FLOWGO and then aggregates all runnout statistics.
 
+         Failed vents are skipped and recorded in a CSV report.
+
         Parameters
         ----------
         path_to_folder : str
@@ -397,6 +399,7 @@ class Runner:
                 eff_dict[f"Y_init_{eff:.1f}"] = []
 
             valid_vents = []
+            failed_vents = []
 
             print(f"Running FLOWGO for {len(contributing_vents)} contributing vents...")
 
@@ -405,52 +408,137 @@ class Runner:
             # ---------------------------------------------------------
 
             for vent_key, vent_data in contributing_vents.items():
+
                 lat, lon = vent_data["Coords"]
-                flow_id = f"{lon}_{lat}"
-                valid_vents.append({"flow_id": flow_id,"X": lon, "Y": lat})
-                path_to_flowgo_results = os.path.join( path_to_folder, f"vents_{flow_id}")
+                flow_id = f"{int(lon)}_{int(lat)}"
+
+                print("\n" + "=" * 65)
+                print(f"Processing contributing vent: {flow_id}")
+                print("=" * 65, flush=True)
+
+                path_to_flowgo_results = os.path.join(
+                    path_to_folder, f"vents_{flow_id}"
+                )
                 os.makedirs(path_to_flowgo_results, exist_ok=True)
 
                 # ---------------------------------------------------------
                 # Copy profile generated during DOWNFLOW
                 # ---------------------------------------------------------
+
                 old_profile = os.path.join(path_to_folder, f"profile_{flow_id}.txt")
-                new_profile = os.path.join(path_to_flowgo_results,f"profile_{flow_id}.txt")
+                new_profile = os.path.join(path_to_flowgo_results, f"profile_{flow_id}.txt")
+
                 if not os.path.exists(old_profile):
-                    print(f"Profile not found: {old_profile}")
-                    continue
-                shutil.copy2(old_profile, new_profile)
+                    message = f"DOWNFLOW profile not found: {old_profile}"
+                    print(f"[SKIPPED] {flow_id}: {message}", flush=True)
 
+                    failed_vents.append({
+                        "flow_id": flow_id,
+                        "X": lon,
+                        "Y": lat,
+                        "error": message
+                    })
 
-                # ---------------------------------------------------------
-                # Run FLOWGO
-                # ---------------------------------------------------------
-
-                run_outs_file = self._run_flowgo_single_vent(flow_id, path_to_folder,path_to_flowgo_results,new_profile)
-                if run_outs_file is None:
-                    continue
-
-                # ---------------------------------------------------------
-                # Read FLOWGO results
-                # ---------------------------------------------------------
-
-                if not os.path.exists(run_outs_file):
-                    print(f"Missing FLOWGO output: {run_outs_file}")
                     continue
 
-                df = pd.read_csv(run_outs_file)
+                try:
 
-                for i in range(len(df)):
-                    eff = df["Effusion_rate"][i]
-                    eff_dict[f"Run_out_{eff:.1f}"].append(df["Distance_run_out"][i])
-                    eff_dict[f"X_run_out_{eff:.1f}"].append(df["X_run_out"][i])
-                    eff_dict[f"Y_run_out_{eff:.1f}"].append(df["Y_run_out"][i])
-                    eff_dict[f"X_init_{eff:.1f}"].append(df["X_init"][i])
-                    eff_dict[f"Y_init_{eff:.1f}"].append(df["Y_init"][i])
+                    shutil.copy2(old_profile, new_profile)
 
-                eff_dict["X"].append(lon)
-                eff_dict["Y"].append(lat)
+                    # -----------------------------------------------------
+                    # Run FLOWGO
+                    # -----------------------------------------------------
 
+                    print(f"[FLOWGO] Starting vent {flow_id}", flush=True)
+
+                    run_outs_file = self._run_flowgo_single_vent(
+                        flow_id,
+                        path_to_folder,
+                        path_to_flowgo_results,
+                        new_profile
+                    )
+
+                    if run_outs_file is None:
+                        raise RuntimeError("FLOWGO returned None: no output file generated")
+
+                    if not os.path.exists(run_outs_file):
+                        raise FileNotFoundError(f"FLOWGO output not found: {run_outs_file}")
+
+                    df = pd.read_csv(run_outs_file)
+
+                    if df.empty:
+                        raise ValueError("FLOWGO output CSV is empty")
+
+                    # -----------------------------------------------------
+                    # Read FLOWGO results
+                    # -----------------------------------------------------
+
+                    for i in range(len(df)):
+                        eff = df["Effusion_rate"][i]
+
+                        eff_dict[f"Run_out_{eff:.1f}"].append(df["Distance_run_out"][i])
+                        eff_dict[f"X_run_out_{eff:.1f}"].append(df["X_run_out"][i])
+                        eff_dict[f"Y_run_out_{eff:.1f}"].append(df["Y_run_out"][i])
+                        eff_dict[f"X_init_{eff:.1f}"].append(df["X_init"][i])
+                        eff_dict[f"Y_init_{eff:.1f}"].append(df["Y_init"][i])
+
+                    eff_dict["X"].append(lon)
+                    eff_dict["Y"].append(lat)
+
+                    valid_vents.append({
+                        "flow_id": flow_id,
+                        "X": lon,
+                        "Y": lat
+                    })
+
+                    print(f"[SUCCESS] FLOWGO completed for vent {flow_id}", flush=True)
+
+                except Exception as e:
+
+                    import traceback
+
+                    message = str(e)
+
+                    print("\n" + "!" * 65)
+                    print(f"[ERROR] FLOWGO failed for vent {flow_id}")
+                    print(f"Coordinates: X={lon}, Y={lat}")
+                    print(f"Error: {message}")
+                    traceback.print_exc()
+                    print(f"[SKIPPED] Moving to next contributing vent: {flow_id}")
+                    print("!" * 65 + "\n", flush=True)
+
+                    failed_vents.append({
+                        "flow_id": flow_id,
+                        "X": lon,
+                        "Y": lat,
+                        "error": message
+                    })
+
+                    continue
+            # ---------------------------------------------------------
+            # Save failed vents report
+            # ---------------------------------------------------------
+
+            failed_csv = os.path.join(
+                path_to_folder,
+                "failed_contributing_vents.csv"
+            )
+
+            pd.DataFrame(failed_vents).to_csv(failed_csv, index=False)
+
+            print("\n" + "=" * 65)
+            print("FLOWGO CONTRIBUTING VENTS SUMMARY")
+            print("=" * 65)
+            print(f"Total contributing vents: {len(contributing_vents)}")
+            print(f"Successfully processed: {len(valid_vents)}")
+            print(f"Failed / skipped: {len(failed_vents)}")
+            print(f"Failure report: {failed_csv}")
+
+            if not valid_vents:
+                raise RuntimeError(
+                    "FLOWGO failed for all contributing vents. "
+                    "No valid results available for mapping."
+                )
             # ---------------------------------------------------------
             # Save merged FLOWGO outputs
             # ---------------------------------------------------------
@@ -463,7 +551,7 @@ class Runner:
                 "contributing_vents.csv"
             )
 
-            pd.DataFrame(valid_vents).to_csv( valid_vents_csv, index=False)
+            pd.DataFrame(valid_vents).to_csv(valid_vents_csv, index=False)
 
             # ---------------------------------------------------------
             # Average runouts

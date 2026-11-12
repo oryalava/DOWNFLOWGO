@@ -496,7 +496,7 @@ def pathfinder(dem_resolution,grid,path_to_results,flow_id,dem,epsg_code,filenam
     to the vent-grid boundary using Dijkstra on a raster cost surface.
 
     Steps:
-    - Read single-payj mastergrid (probability) and DEM cropped to the master extent.
+    - Read single-path mastergrid (probability) and DEM cropped to the master extent.
     - Normalize probabilities and perform a safe vectorized trim of all-zero margins.
     - Robustly determine a source cell on left/right edges of the non-zero rows.
     - Identify the vent-grid rectangle inside the mastergrid and homogenize inner probs.
