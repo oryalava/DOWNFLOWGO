@@ -1,6 +1,6 @@
-input_DEM /Users/chevrel/Documents/LA_REUNION/DEM/Clip_DEM_update_oct2010_aug2015_nosea.asc
-Xorigine 371365
-Yorigine 7646021
+input_DEM /Users/chevrel/Documents/GitHub/DOWNFLOWGO/assets/input/DEM/srtm_48_17_utmnew.asc
+Xorigine 369100.0
+Yorigine 7647136.0
 n_path 10000
 DH 2
 MaxPathLength 100000000

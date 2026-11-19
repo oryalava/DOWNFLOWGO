@@ -1,7 +1,7 @@
-input_DEM ./srtm_25m_utm.asc
+input_DEM /Users/chevrel/Documents/LA_REUNION/DEM/MNT_LiDAR_IGN_2025/MNT_LiDAR_IGN_2025_5m.asc
 Xorigine 369082.7                        # longitude of the vent
 Yorigine 7647204.29                     # latitude of the vent
-n_path 10000                              # Number of runs
+n_path 10000                             # Number of runs
 DH 2                                    # Delta H value
 MaxPathLength 100000000
 n_iter_per_path 800000000
