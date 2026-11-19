@@ -39,10 +39,9 @@ This package includes :
 and  another folder **DOWNFLOW** with the code in c++ of DOWNFLOW ```downflow.cpp```[Favalli et al. 2005](https://doi.org/10.1029/2004gl021718) 
 provided by Massimiliano Favalli (hopefully soon available on github). To install **DOWNFLOW** you must follow the instruction in the **DOWNFLOW** folder: **README_DOWNFLOW.md** 
 
+2) the main script to run DOWNFLOW: ``` main_downflowgo.py   ``` and  GUI version ``` main_downflowgo_GUI.py   ```
 
-2) the main script to run DOWNFLOW: ``` main_downflowgo.py   ```   
-
-3)  an "assets" folder with examples of inputs and outputs, 
+3) two folders "inputs" and "outputs" with examples, 
 
 5) the requirements and environment
 
@@ -94,7 +93,7 @@ cellsize     5.00
 NODATA_value  0
  ```
 
-2) The configuration file: ```config_downflowgo.ini``` looks as follow (update the paths and all parameters needed to run the code with your configuration):
+2) The configuration file: ```config_downflowgo.ini``` (in inputs folder) should be as follow (update the paths and all parameters needed to run the code with your configuration):
 ```
 [config_general]
 #grid_mode = yes or no
@@ -121,6 +120,8 @@ northing = 7647086
 dh = 2
 n_path = 10000
 slope_step = 10
+#a default file that DOWNFLOW needs to run
+parameters_file_downflow = ./input/parameters_file_downflow.txt
 #EPSG_code are usually La Réunion 32740, Galapagos 32715; Iceland 32627; Hawaii
 epsg_code = 32740
 
@@ -151,7 +152,7 @@ unverified_data = TEST
 language = EN
 
 ```
-3) The ```.json``` file for PyFLOWGO:
+3) The ```.json``` file should follow the instructions for PyFLOWGO
 For more information go to ```https://github.com/pyflowgo/pyflowgo.git ```
 
 ### 3) Run the code:
@@ -162,23 +163,25 @@ To run DOWNFLOWGO from your terminal :
 
 You can also use the GUI:
 
- ``` python main_downflowgo_GUI.py ./assets/input/config_downflowgo.ini ```
+ ``` python main_downflowgo_GUI.py``` and then upload the config file.ini
 
-You can choose in the configuration file whether you want a GUI and if you want to run DOWNFLOW or DOWNFLOWGO.
-You can also choose to display the map or no (if not it will be saved anyway in the folder)
+You can choose in the configuration file whether you want to run DOWNFLOW or DOWNFLOWGO.
+You can also choose to display the map or not (if not it will be saved anyway in the folder)
 
 ## Output files
 
 In the dedicated folder define in configuration_file (```eruptions_folder```) you will find:
-* A folder named **results_flowgo** with all the results from pyflowgo and associated plots
+* A folder named **vent_name**, and within **results_flowgo** with all the results from pyflowgo and associated plots
 * The map of the simulation that uses the above layers: ```map.png```
+* A raster with the flow path probabilities ```sim.asc ```
+* A profile.txt that is the main path from DOWNFLOW  (the line of steepest descent as text file)
+* The config file you actually used
 * A new folder named **map** that contains the following files so you can create your own map with any GIS system:
 
-  1) ```vent.shp```(the vent point)
-  2) ```sim.asc ```(a raster with the flow path probabilities)
-  3) ```losd_profile.txt``` (the line of steepest descent as text file)
-  4) ```losd.shp``` (the line of steepest descent as shape file)
-  5) ```runouts.shp``` (the runout points for the given effusion rates along the main path)
+  1) ```vent.shp```(the vent point)`
+  2) ```losd.shp``` (the line of steepest descent as shape file)
+  3) ```runouts.shp``` (the runout points for the given effusion rates along the main path)
+  4) ```30pct.shp``` (the runout 30% uncertainties the given effusion rates along the main path)
 
     
 #  Authors
