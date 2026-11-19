@@ -97,11 +97,13 @@ NODATA_value  0
 2) The configuration file: ```config_downflowgo.ini``` looks as follow (update the paths and all parameters needed to run the code with your configuration):
 ```
 [config_general]
-#yes or short or no
-use_gui = no
+#grid_mode = yes or no
 grid_mode = yes
+
 #Chose either downflow or downflowgo
 mode = downflowgo
+
+#Chose to display map or no
 mapping_display = yes
 
 

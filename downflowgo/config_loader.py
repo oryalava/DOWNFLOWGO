@@ -1,7 +1,7 @@
 import os
 import sys
 import configparser
-import editor_configuration_file_downflowgo
+
 
 
 class Config:
@@ -12,7 +12,6 @@ class Config:
         self.from_vent = False
 
         # [config_general]
-        self.use_gui = None
         self.grid_mode = None
         self.mode = None
         self.mapping_display = None
@@ -111,24 +110,7 @@ class Config:
             print(f"Error : Impossible to read '{config_file}'")
             sys.exit(1)
 
-        # Check if GUI is enabled in the config
-        self.use_GUI = self.config['config_general']['use_gui']
-
         # Check if grid
-        self.grid_mode = self.config.get('config_general', 'grid_mode', fallback='no')
-
-        # Launch GUI if enabled
-        if self.use_GUI == 'yes':
-            gui_option = 1
-        elif self.use_GUI == 'short':
-            gui_option = 2
-        else:  # use_GUI == 'no'
-            return self.config
-
-        modified_config = editor_configuration_file_downflowgo.launch_editor(config_file, gui_option=gui_option, grid_mode=grid_mode)
-        # Reload the updated config if a new one was saved
-        self.config.read(modified_config)
-        config_file = modified_config  # Update path to point to new config
         self.grid_mode = self.config.get('config_general', 'grid_mode', fallback='no')
 
         return self.config
@@ -249,8 +231,7 @@ class Config:
         save_config['config_general'] = {
             'mode': self.mode,
             'grid_mode': self.grid_mode,
-            'mapping_display': self.mapping_display,
-            'use_gui': f"{self.use_gui if self.use_gui else 'no'}"}
+            'mapping_display': self.mapping_display}
 
         # Paths
         save_config['paths'] = {
@@ -322,7 +303,6 @@ class Config:
     def summary(self) -> dict:
         return {"path_to_downflow": self.path_to_downflow,
                 "parameters_file_downflow": self.parameters_file_downflow,
-                "use_gui": self.use_gui,
                 "grid_mode": self.grid_mode,
                 "mode": self.mode,
                 "mapping_display": self.mapping_display,
